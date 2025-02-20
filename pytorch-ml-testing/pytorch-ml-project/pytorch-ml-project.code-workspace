@@ -1,0 +1,33 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "docker.commands.build": [
+            {
+                "label": "Build Docker Image",
+                "command": "docker build -t pytorch-ml-project ."
+            }
+        ],
+        "docker.commands.run": [
+            {
+                "label": "Run Docker Container",
+                "command": "docker run -p 8888:8888 -v ${workspaceFolder}:/app pytorch-ml-project"
+            }
+        ],
+        "terminal.integrated.defaultProfile.windows": "PowerShell",
+        "terminal.integrated.profiles.windows": {
+            "PowerShell": {
+                "source": "PowerShell",
+                "icon": "terminal-powershell"
+            }
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-azuretools.vscode-docker"
+        ]
+    }
+}
