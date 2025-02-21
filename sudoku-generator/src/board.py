@@ -29,6 +29,16 @@ class Cell:
             tuple: The row and column index of the cell.
         """
         return self.row, self.col
+    def copy(self):
+        """
+        Create a copy of the cell. Must be the same location as the original cell.
+
+        Returns:
+            Cell: A copy of the cell.
+        """
+        cell_copy = Cell(self.value,self.row,self.col)
+        cell_copy.possible_values = self.possible_values.copy()
+        return cell_copy
 
 
 class Board:
@@ -155,7 +165,7 @@ class Board:
         for row in range(self.size):
             for col in range(self.size):
                 cell = self.grid[row][col]
-                if cell.value == 0 and len(cell.possible_values) < min_values:
+                if cell.value == 0 and len(cell.possible_values) < min_values and len(cell.possible_values) > 0:
                     min_values = len(cell.possible_values)
                     mrv_cell = self.grid[row][col]
         return mrv_cell
@@ -187,6 +197,5 @@ class Board:
         board_copy = Board(self.size)
         for r in range(self.size):
             for c in range(self.size):
-                board_copy.grid[r][c].value = self.grid[r][c].value
-                board_copy.grid[r][c].possible_values = self.grid[r][c].possible_values.copy()
+                board_copy.grid[r][c] = self.grid[r][c].copy()
         return board_copy
