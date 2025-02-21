@@ -10,6 +10,7 @@ sudoku-generator
 │   ├── __init__.py
 │   ├── generator.py
 │   └── solver.py
+│   └──board.py
 ├── Dockerfile
 ├── requirements.txt
 └── README.md
