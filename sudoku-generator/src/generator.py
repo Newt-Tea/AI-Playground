@@ -82,27 +82,46 @@ class SudokuGenerator:
         logging.info(f"Removing clues to leave {num_clues} clues in the puzzle")
         clues_left = self.size * self.size - num_clues
         empty_cells = set()
+        backup = self.board.copy()
+        attempts = 0
+
         while clues_left > 0:
             row, col = random.randint(0, self.size - 1), random.randint(0, self.size - 1)
             while (row, col) in empty_cells or self.board[row][col].value == 0:
                 row, col = random.randint(0, self.size - 1), random.randint(0, self.size - 1)
+
+            
             empty_cells.add((row, col))
             backup = self.board.copy()
             self.board[row][col].value = 0
             self.board.update_possible_values(row, col)
+
             for r in range(self.size):
                 for c in range(self.size):
                     if c!=col and r!=row and self.board[r][c].value == 0: 
                         self.board[r][c].possible_values.discard(backup[row][col].value)
 
             board_copy = self.board.copy()
+
             if not self.solver.solve(board_copy):
+                logging.debug(f"Board\n {self.print_grid()}\nis unsolvable")
                 self.board = backup.copy()
-                logging.debug(f"Restored to backup after finding grid\n{backup}\nunsolvable")
+                logging.debug(f"Restored ({row}, {col}) to {backup[row][col].value}")
                 empty_cells.remove((row, col))
+                attempts += 1
+                logging.debug(f"Attempts for this clue: {attempts}")
+
+                for r in range(self.size):
+                    for c in range(self.size):
+                        if c!=col and r!=row and self.board[r][c].value == 0: 
+                            self.board[r][c].possible_values.add(backup[row][col].value)
+
+                
             else:
                 clues_left -= 1
                 logging.debug(f"Removed cell ({row}, {col}) successfully")
+                attempts = 0
+            
             logging.debug(f"Clues remaining: {clues_left}")
         logging.info("Clue removal complete")
 
