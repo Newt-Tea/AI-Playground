@@ -38,7 +38,7 @@ To run this project, you need to have Python installed on your machine. You can 
 1. Clone the repository:
 
    ```
-   git clone <repository-url>
+   git clone https://github.com/Newt-Tea/AI-Playground.git
    cd sudoku-generator
    ```
 
@@ -58,6 +58,7 @@ To run this project, you need to have Python installed on your machine. You can 
 
 - The `SudokuGenerator` class in `generator.py` can be used to create Sudoku puzzles.
 - The `SudokuSolver` class in `solver.py` can be used to solve Sudoku puzzles.
+- The `Board` class in `board.py` can be used to create sudoku grids
 
 ## Contributing
 
