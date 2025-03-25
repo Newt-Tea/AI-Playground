@@ -379,3 +379,39 @@ class Board:
                 new_cell.possible_values = set(original_cell.possible_values)
         
         return new_board
+
+    def get_mrv_cell(self):
+        """
+        Find the empty cell with the fewest possible values (Minimum Remaining Values heuristic).
+        
+        Returns:
+            tuple or None: (row, col) of the cell with fewest possible values, or None if no empty cells exist
+        """
+        min_possibilities = float('inf')  # Start with infinity
+        mrv_cell = None
+        
+        # Search all cells on the board
+        for row in range(self.size):
+            for col in range(self.size):
+                # Skip cells that are already filled
+                if not self.is_empty(row, col):
+                    continue
+                
+                # Make sure possible values are up to date for this cell
+                self.update_possible_values(row, col)
+                
+                # Get the number of possible values for this cell
+                num_possibilities = len(self.get_cell(row, col).possible_values)
+                
+                # If this cell has fewer possibilities, update our MRV cell
+                if num_possibilities < min_possibilities:
+                    min_possibilities = num_possibilities
+                    mrv_cell = (row, col)
+                    
+                    # If we found a cell with only one possibility, we can return immediately
+                    # as this is the minimum possible
+                    if num_possibilities == 1:
+                        return mrv_cell
+        
+        # Return the cell with the fewest possibilities, or None if board is filled
+        return mrv_cell

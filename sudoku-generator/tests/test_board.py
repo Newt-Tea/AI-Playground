@@ -601,3 +601,104 @@ def test_board_copy_different_states():
     for r in range(4):
         for c in range(4):
             assert full_copy.get_value(r, c) == full.get_value(r, c)
+
+def test_get_mrv_cell_basic():
+    """Test MRV finds cell with fewest options."""
+    board = Board(4)
+    
+    # Initially all cells have all possibilities, so MRV could be any cell
+    # The implementation should return the first such cell it finds
+    mrv = board.get_mrv_cell()
+    assert mrv is not None
+    assert board.is_empty(*mrv)
+    
+    # Now constrain some cells
+    board.set_value(0, 0, 1)  # This sets cell (0,0) and affects constraints
+    board.update_possible_values()  # Update possible values for all cells
+    
+    # Cells in row 0, column 0, and the top-left subgrid are constrained by this value
+    # Let's further constrain the board
+    board.set_value(0, 1, 2)
+    board.set_value(1, 0, 3)
+    board.update_possible_values()
+    
+    # Now cell (1,1) should be most constrained (row, column, and subgrid constraints)
+    mrv = board.get_mrv_cell()
+    assert mrv == (1, 1)
+    
+    # Verify the cell has fewer possibilities than others
+    cell_1_1_count = len(board.get_cell(1, 1).possible_values)
+    cell_2_2_count = len(board.get_cell(2, 2).possible_values)
+    assert cell_1_1_count < cell_2_2_count  # Cell (1,1) should have fewer possibilities
+
+def test_get_mrv_cell_tie_handling():
+    """Test MRV handling when multiple cells have the same number of possibilities."""
+    board = Board(4)
+    
+    # Set up a scenario where multiple cells have the same number of possibilities
+    board.set_value(0, 0, 1)
+    board.set_value(0, 2, 2)
+    board.update_possible_values()
+    
+    # Now cells (0,1) and (0,3) should be equally constrained
+    # The MRV heuristic should choose the first one it finds
+    mrv = board.get_mrv_cell()
+    assert mrv is not None
+    assert mrv[0] == 0  # Should be in row 0
+    assert mrv[1] in (1, 3)  # Should be either column 1 or 3
+    
+    # Even with ties, the result should be consistent between calls
+    mrv2 = board.get_mrv_cell()
+    assert mrv == mrv2
+
+def test_get_mrv_cell_filled_board():
+    """Test MRV returns None for a completely filled board."""
+    board = Board(4)
+    
+    # Fill the entire board
+    for r in range(4):
+        for c in range(4):
+            board.set_value(r, c, ((r*2 + c) % 4) + 1)  # Simple pattern to fill board
+    
+    # MRV should return None since there are no empty cells
+    assert board.get_mrv_cell() is None
+
+def test_get_mrv_cell_one_possibility():
+    """Test MRV prioritizes cells with only one possibility."""
+    board = Board(4)
+    
+    # Set up a scenario where one cell has only one possible value
+    board.set_value(0, 0, 1)
+    board.set_value(0, 1, 2)
+    board.set_value(0, 2, 3)
+    board.set_value(1, 0, 4)
+    board.set_value(1, 1, 3)
+    board.set_value(1, 2, 1)
+    board.set_value(2, 0, 2)
+    board.update_possible_values()
+    
+    # At this point, cell (1, 3) should have only one possible value: 2
+    # MRV should select this cell
+    mrv = board.get_mrv_cell()
+    assert mrv == (1, 3)
+    assert len(board.get_cell(1, 3).possible_values) == 1
+
+def test_get_mrv_cell_different_board_sizes():
+    """Test MRV works with different board sizes."""
+    # Test with a 4x4 board
+    board4 = Board(4)
+    board4.set_value(0, 0, 1)
+    board4.update_possible_values()
+    assert board4.get_mrv_cell() is not None
+    
+    # Test with a 9x9 board
+    board9 = Board(9)
+    board9.set_value(0, 0, 1)
+    board9.update_possible_values()
+    assert board9.get_mrv_cell() is not None
+    
+    # Test with a 16x16 board
+    board16 = Board(16)
+    board16.set_value(0, 0, 1)
+    board16.update_possible_values()
+    assert board16.get_mrv_cell() is not None
