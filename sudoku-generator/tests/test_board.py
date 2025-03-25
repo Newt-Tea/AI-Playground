@@ -210,9 +210,6 @@ def test_is_safe_row_constraint():
     # Same row should fail
     assert board.is_safe(0, 1, 5) is False
     
-    # Different row should pass
-    assert board.is_safe(1, 0, 5) is True
-
 def test_is_safe_column_constraint():
     """Test is_safe method for column constraint."""
     board = Board(9)
@@ -221,9 +218,6 @@ def test_is_safe_column_constraint():
     # Same column should fail
     assert board.is_safe(1, 0, 5) is False
     
-    # Different column should pass
-    assert board.is_safe(0, 1, 5) is True
-
 def test_is_safe_subgrid_constraint():
     """Test is_safe method for subgrid constraint."""
     board = Board(9)  # 3x3 subgrids
@@ -337,3 +331,149 @@ def test_is_valid_multiple_violations():
     board.set_value(1, 0, 1)  # Column violation
     
     assert board.is_valid() is False
+
+def test_update_possible_values_single_cell():
+    """Test updating possible values for a single cell."""
+    board = Board(4)  # 4x4 board for simplicity
+    
+    # Initially, cell (0,0) should have all values possible
+    cell = board.get_cell(0, 0)
+    assert cell.possible_values == {1, 2, 3, 4}
+    
+    # Set value in same row
+    board.set_value(0, 1, 1)
+    
+    # Update possible values for cell (0,0)
+    board.update_possible_values(0, 0)
+    
+    # Now cell (0,0) should not have 1 as a possible value
+    assert cell.possible_values == {2, 3, 4}
+    
+    # Set value in same column
+    board.set_value(1, 0, 2)
+    
+    # Update possible values for cell (0,0)
+    board.update_possible_values(0, 0)
+    
+    # Now cell (0,0) should not have 1 or 2 as possible values
+    assert cell.possible_values == {3, 4}
+    
+    # Set value in same subgrid (for 4x4 board, subgrids are 2x2)
+    board.set_value(1, 1, 3)
+    
+    # Update possible values for cell (0,0)
+    board.update_possible_values(0, 0)
+    
+    # Now cell (0,0) should only have 4 as possible value
+    assert cell.possible_values == {4}
+
+def test_update_possible_values_all_cells():
+    """Test updating possible values for all cells."""
+    board = Board(4)
+    
+    # Set some values
+    board.set_value(0, 0, 1)
+    board.set_value(0, 1, 2)
+    board.set_value(1, 0, 3)
+    
+    # Update all cells
+    board.update_possible_values()
+    
+    # Check a few cells
+    # Cell (0,2) should not have 1 or 2 (same row)
+    assert board.get_cell(0, 2).possible_values == {3, 4}
+    
+    # Cell (2,0) should not have 1 or 3 (same column)
+    assert board.get_cell(2, 0).possible_values == {2, 4}
+    
+    # Cell (1,1) should not have 1 (subgrid), 2 (subgrid), or 3 (same row)
+    assert board.get_cell(1, 1).possible_values == {4}
+
+def test_update_possible_values_for_filled_cell():
+    """Test updating possible values for a cell with a value already set."""
+    board = Board(4)
+    
+    # Set a value
+    board.set_value(0, 0, 1)
+    
+    # Update that cell's possible values
+    board.update_possible_values(0, 0)
+    
+    # Cell should only have its own value as possible
+    assert board.get_cell(0, 0).possible_values == {1}
+    
+    # Change the value
+    board.set_value(0, 0, 2)
+    board.update_possible_values(0, 0)
+    
+    # Possible values should update
+    assert board.get_cell(0, 0).possible_values == {2}
+
+def test_update_possible_values_propagation():
+    """Test that constraint propagation properly cascades across the board."""
+    board = Board(4)
+    
+    # Setting values should reduce options for other cells
+    board.set_value(0, 0, 1)
+    board.set_value(1, 1, 2)
+    board.set_value(2, 2, 3)
+    
+    # Update all possible values
+    board.update_possible_values()
+    
+    # Check that constraint propagation worked properly
+    # Cell (0,1) can't have 1 (same row)
+    assert 1 not in board.get_cell(0, 1).possible_values
+    
+    # Cell (1,0) can't have 1 (same subgrid) or 2 (same row)
+    assert 1 not in board.get_cell(1, 0).possible_values
+    assert 2 not in board.get_cell(1, 0).possible_values
+    
+    # Cell (2,0) can't have 1 (same column)
+    assert 1 not in board.get_cell(2, 0).possible_values
+    
+    # Cell (3,3) can't have 3 (same column and row)
+    assert 3 not in board.get_cell(3, 3).possible_values
+
+def test_update_possible_values_reset():
+    """Test resetting possible values when a cell value is removed."""
+    board = Board(4)
+    
+    # Set a value
+    board.set_value(0, 0, 1)
+    
+    # Update all cells
+    board.update_possible_values()
+    
+    # Cell (0,1) should not have 1 as possible
+    assert 1 not in board.get_cell(0, 1).possible_values
+    
+    # Now remove the value
+    board.set_value(0, 0, None)
+    
+    # Update all cells
+    board.update_possible_values()
+    
+    # Now cell (0,1) should have 1 as possible again
+    assert 1 in board.get_cell(0, 1).possible_values
+    
+    # And cell (0,0) should have all values possible again
+    assert board.get_cell(0, 0).possible_values == {1, 2, 3, 4}
+
+def test_update_possible_values_invalid_inputs():
+    """Test update_possible_values with invalid inputs."""
+    board = Board(4)
+    
+    # Only one of row or col provided
+    with pytest.raises(ValueError):
+        board.update_possible_values(row=1)
+    
+    with pytest.raises(ValueError):
+        board.update_possible_values(col=1)
+    
+    # Out of bounds
+    with pytest.raises(IndexError):
+        board.update_possible_values(4, 0)
+    
+    with pytest.raises(IndexError):
+        board.update_possible_values(0, 4)

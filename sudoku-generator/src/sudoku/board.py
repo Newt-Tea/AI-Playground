@@ -289,3 +289,66 @@ class Board:
         
         # If we've passed all checks, the board is valid
         return True
+
+    def update_possible_values(self, row=None, col=None):
+        """
+        Update possible values for cells based on current board state.
+        
+        Args:
+            row (int, optional): Specific row to update. If None, update all cells.
+            col (int, optional): Specific column to update. If None, update all cells.
+            
+        Note:
+            - If both row and col are provided, updates only that specific cell.
+            - If both row and col are None, updates all cells on the board.
+            - If only one of row or col is provided, the other must also be provided.
+        
+        Raises:
+            ValueError: If only one of row or col is provided.
+            IndexError: If row or col is out of bounds.
+        """
+        # Validate inputs
+        if (row is None) != (col is None) and (row is not None or col is not None):
+            raise ValueError("Both row and col must be provided together or both must be None.")
+            
+        # If specific cell is provided
+        if row is not None and col is not None:
+            if not (0 <= row < self.size and 0 <= col < self.size):
+                raise IndexError(f"Position ({row}, {col}) is out of bounds for board of size {self.size}")
+                
+            # Reset possible values for the cell based on board size
+            cell = self.get_cell(row, col)
+            if cell.get_value() is not None:
+                # If cell has a value, possible values is just that value
+                cell.possible_values = {cell.get_value()}
+            else:
+                # Otherwise, start with all values possible
+                cell.possible_values = set(range(1, self.size + 1))
+                
+                # Remove values from same row
+                for c in range(self.size):
+                    val = self.get_value(row, c)
+                    if val is not None and val in cell.possible_values:
+                        cell.possible_values.remove(val)
+                
+                # Remove values from same column
+                for r in range(self.size):
+                    val = self.get_value(r, col)
+                    if val is not None and val in cell.possible_values:
+                        cell.possible_values.remove(val)
+                
+                # Remove values from same subgrid
+                subgrid_row = (row // self.subgrid_size) * self.subgrid_size
+                subgrid_col = (col // self.subgrid_size) * self.subgrid_size
+                
+                for r in range(subgrid_row, subgrid_row + self.subgrid_size):
+                    for c in range(subgrid_col, subgrid_col + self.subgrid_size):
+                        val = self.get_value(r, c)
+                        if val is not None and val in cell.possible_values:
+                            cell.possible_values.remove(val)
+        else:
+            # Update all cells
+            for r in range(self.size):
+                for c in range(self.size):
+                    # Recursively call this method for each cell
+                    self.update_possible_values(r, c)
