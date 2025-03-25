@@ -477,3 +477,127 @@ def test_update_possible_values_invalid_inputs():
     
     with pytest.raises(IndexError):
         board.update_possible_values(0, 4)
+
+def test_board_copy_basic():
+    """Test that copying a board creates an independent copy."""
+    original = Board(9)
+    
+    # Set some values in the original
+    original.set_value(0, 0, 1)
+    original.set_value(1, 1, 2)
+    original.set_value(2, 2, 3)
+    
+    # Create a copy
+    copy = original.copy()
+    
+    # Verify the copy has the same values
+    assert copy.get_value(0, 0) == 1
+    assert copy.get_value(1, 1) == 2
+    assert copy.get_value(2, 2) == 3
+    
+    # Verify the copy has the same size
+    assert copy.get_size() == original.get_size()
+    assert copy.get_subgrid_size() == original.get_subgrid_size()
+
+def test_board_copy_independence():
+    """Test that modifying the copy doesn't affect the original."""
+    original = Board(4)
+    original.set_value(0, 0, 1)
+    
+    # Create a copy
+    copy = original.copy()
+    
+    # Modify the copy
+    copy.set_value(0, 0, 2)
+    copy.set_value(1, 1, 3)
+    
+    # Check that the original is unchanged
+    assert original.get_value(0, 0) == 1
+    assert original.get_value(1, 1) is None
+    
+    # Check that the copy was modified
+    assert copy.get_value(0, 0) == 2
+    assert copy.get_value(1, 1) == 3
+    
+    # Modify the original
+    original.set_value(2, 2, 4)
+    
+    # Check that the copy is unchanged
+    assert copy.get_value(2, 2) is None
+
+def test_board_copy_deep():
+    """Test that the copy includes deep copies of all cells."""
+    original = Board(4)
+    
+    # Set a value and update possible values
+    original.set_value(0, 0, 1)
+    original.update_possible_values()
+    
+    # Create a copy
+    copy = original.copy()
+    
+    # Get cells from both boards
+    original_cell = original.get_cell(1, 1)
+    copy_cell = copy.get_cell(1, 1)
+    
+    # Check that the cells have the same possible values
+    assert copy_cell.possible_values == original_cell.possible_values
+    
+    # Modify possible values in the copy
+    old_possible = set(copy_cell.possible_values)
+    copy_cell.possible_values.clear()
+    
+    # Check that the original cell's possible values are unchanged
+    assert original_cell.possible_values == old_possible
+    assert copy_cell.possible_values != original_cell.possible_values
+
+def test_board_copy_different_sizes():
+    """Test that copying works for boards of different sizes."""
+    # Test with 4x4 board
+    board_4 = Board(4)
+    board_4.set_value(0, 0, 1)
+    copy_4 = board_4.copy()
+    assert copy_4.get_size() == 4
+    assert copy_4.get_value(0, 0) == 1
+    
+    # Test with 9x9 board
+    board_9 = Board(9)
+    board_9.set_value(0, 0, 1)
+    copy_9 = board_9.copy()
+    assert copy_9.get_size() == 9
+    assert copy_9.get_value(0, 0) == 1
+    
+    # Test with 16x16 board
+    board_16 = Board(16)
+    board_16.set_value(0, 0, 1)
+    copy_16 = board_16.copy()
+    assert copy_16.get_size() == 16
+    assert copy_16.get_value(0, 0) == 1
+
+def test_board_copy_different_states():
+    """Test that copying works for boards in different states."""
+    # Empty board
+    empty = Board(4)
+    empty_copy = empty.copy()
+    assert all(empty_copy.get_value(r, c) is None 
+               for r in range(4) for c in range(4))
+    
+    # Partially filled board
+    partial = Board(4)
+    partial.set_value(0, 0, 1)
+    partial.set_value(1, 1, 2)
+    partial_copy = partial.copy()
+    assert partial_copy.get_value(0, 0) == 1
+    assert partial_copy.get_value(1, 1) == 2
+    assert partial_copy.get_value(2, 2) is None
+    
+    # Completely filled board
+    full = Board(4)
+    for r in range(4):
+        for c in range(4):
+            full.set_value(r, c, ((r*2 + c) % 4) + 1)  # Simple pattern to fill board
+    
+    full_copy = full.copy()
+    for r in range(4):
+        for c in range(4):
+            assert full_copy.get_value(r, c) == full.get_value(r, c)

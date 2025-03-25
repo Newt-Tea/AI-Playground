@@ -352,3 +352,30 @@ class Board:
                 for c in range(self.size):
                     # Recursively call this method for each cell
                     self.update_possible_values(r, c)
+
+    def copy(self):
+        """
+        Create a deep copy of the board.
+        
+        Returns:
+            Board: A new Board instance with the same state
+        """
+        # Create a new board with the same size
+        new_board = Board(self.size)
+        
+        # Copy each cell individually
+        for row in range(self.size):
+            for col in range(self.size):
+                # Get the original cell and its copy
+                original_cell = self.get_cell(row, col)
+                new_cell = new_board.get_cell(row, col)
+                
+                # Copy the value
+                value = original_cell.get_value()
+                if value is not None:
+                    new_cell.set_value(value)
+                
+                # Copy the possible values (directly access the attribute for efficiency)
+                new_cell.possible_values = set(original_cell.possible_values)
+        
+        return new_board
