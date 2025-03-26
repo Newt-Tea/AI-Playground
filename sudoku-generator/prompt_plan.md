@@ -242,3 +242,54 @@ Let's create a command-line interface for our Sudoku generator. Building on our 
    - End-to-end puzzle generation works from the command line
 
 This completes the core functionality of our Sudoku generator.
+
+### Prompt 15: Logging and Performance Optimization
+
+Let's add comprehensive logging and performance improvements to our Sudoku generator.
+
+## Requirements:
+
+1. Implement a logging system:
+   - Create `src/sudoku/logger.py` for centralized logging
+   - Add configurable log levels (INFO, DEBUG, etc.)
+   - Log key events in the generation and solving process
+   - Add timing information for performance-critical sections
+   - Support console and optional file logging
+
+2. Optimize performance across all classes:
+   - Profile the solution counting and clue removal
+   - Identify and fix bottlenecks
+   - Add caching where appropriate
+   - Optimize constraint propagation
+
+3. Create tests to verify:
+   - Logging works at different levels
+   - Performance improvements are measurable
+   - Log output contains expected information
+
+Performance should be measured and documented for various board sizes and configurations.
+
+### Prompt 16: Documentation and Examples
+
+Let's finalize the project with comprehensive documentation and examples.
+
+## Requirements:
+
+1. Create detailed documentation:
+   - README.md with project overview, installation, and usage
+   - API documentation for all public classes and methods
+   - Examples directory with sample code and puzzles
+   - Performance benchmarks and recommendations
+
+2. Implement example scripts:
+   - Create `examples/generate_puzzle.py` that demonstrates basic usage
+   - Create `examples/batch_generate.py` for generating multiple puzzles
+   - Create `examples/solve_puzzle.py` for solving existing puzzles
+
+3. Add final integration tests that:
+   - Test the entire pipeline from generation to solving
+   - Verify performance meets requirements
+   - Test all example scripts
+
+Ensure documentation is clear and provides enough context for new users to get started quickly.
+
