@@ -415,3 +415,59 @@ class Board:
         
         # Return the cell with the fewest possibilities, or None if board is filled
         return mrv_cell
+
+    def count_solutions(self, max_count=2):
+        """
+        Count the number of valid solutions for the current board state.
+        
+        Args:
+            max_count (int): Maximum number of solutions to count before stopping.
+                            Default is 2, which is useful for checking uniqueness.
+        
+        Returns:
+            int: The number of solutions found (up to max_count).
+        """
+        # Track solutions found
+        solutions = [0]
+        
+        # Make a copy of the board to work with
+        board_copy = self.copy()
+        
+        def backtrack():
+            # Find the most constrained empty cell using MRV
+            mrv_cell = board_copy.get_mrv_cell()
+            
+            # If no empty cells, we found a solution
+            if mrv_cell is None:
+                solutions[0] += 1
+                return
+            
+            # Get the row and column of the MRV cell
+            row, col = mrv_cell
+            
+            # Try each possible value for this cell
+            for num in board_copy.get_cell(row, col).possible_values:
+                # If we've already found max_count solutions, stop
+                if solutions[0] >= max_count:
+                    return
+                
+                # Check if this value is safe to place
+                if board_copy.is_safe(row, col, num):
+                    # Place the value
+                    board_copy.set_value(row, col, num)
+                    # Update constraints
+                    board_copy.update_possible_values(row, col)
+                    
+                    # Recurse to next cell
+                    backtrack()
+                    
+                    # Backtrack - remove the value
+                    board_copy.set_value(row, col, None)
+                    # Reset constraints
+                    board_copy.update_possible_values(row, col)
+        
+        # Start backtracking
+        backtrack()
+        
+        # Return the number of solutions found
+        return solutions[0]
