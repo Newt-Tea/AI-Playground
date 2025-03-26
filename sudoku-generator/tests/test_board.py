@@ -666,15 +666,19 @@ def test_get_mrv_cell_filled_board():
 def test_get_mrv_cell_one_possibility():
     """Test MRV prioritizes cells with only one possibility."""
     board = Board(4)
-    
+
     # Set up a scenario where one cell has only one possible value
     board.set_value(0, 0, 1)
-    board.set_value(0, 1, 2)
+    board.set_value(0, 1, 2) 
     board.set_value(0, 2, 3)
+    board.set_value(0, 3, 4)  # Add this to constrain row 0 fully
     board.set_value(1, 0, 4)
     board.set_value(1, 1, 3)
     board.set_value(1, 2, 1)
     board.set_value(2, 0, 2)
+    board.set_value(3, 1, 1)  # Add this to constrain column 1 more
+    
+    # Make sure we update all possible values
     board.update_possible_values()
     
     # At this point, cell (1, 3) should have only one possible value: 2
@@ -682,6 +686,7 @@ def test_get_mrv_cell_one_possibility():
     mrv = board.get_mrv_cell()
     assert mrv == (1, 3)
     assert len(board.get_cell(1, 3).possible_values) == 1
+    assert 2 in board.get_cell(1, 3).possible_values
 
 def test_get_mrv_cell_different_board_sizes():
     """Test MRV works with different board sizes."""
@@ -702,3 +707,63 @@ def test_get_mrv_cell_different_board_sizes():
     board16.set_value(0, 0, 1)
     board16.update_possible_values()
     assert board16.get_mrv_cell() is not None
+
+def test_count_solutions_unique():
+    """Test counting solutions for a board with a unique solution."""
+    board = Board(4)  # 4x4 board for efficiency
+    
+    # Create a board with a unique solution
+    board.set_value(0, 0, 1)
+    board.set_value(0, 1, 2)
+    board.set_value(0, 2, 3)
+    board.set_value(0, 3, 4)
+    board.set_value(1, 0, 3)
+    board.set_value(1, 1, 4)
+    board.set_value(2, 2, 2)
+    board.set_value(3, 3, 3)
+    
+    # Update possible values to ensure constraints are applied
+    
+    board.update_possible_values()
+    
+    # Count solutions
+    solutions = board.count_solutions()
+    assert solutions == 1
+
+def test_count_solutions_multiple():
+    """Test counting solutions for a board with multiple solutions."""
+    board = Board(4)
+    
+    # Create a board with multiple solutions
+    board.set_value(0, 0, 1)
+    board.set_value(1, 1, 2)
+    
+    # Count solutions (should find at least 2)
+    solutions = board.count_solutions()
+    assert solutions >= 2
+
+def test_count_solutions_unsolvable():
+    """Test counting solutions for an unsolvable board."""
+    board = Board(4)
+    
+    # Create a board with no solutions
+    board.set_value(0, 0, 1)
+    board.set_value(0, 1, 1)  # Constraint violation
+    
+    # Count solutions
+    solutions = board.count_solutions()
+    assert solutions == 0
+
+def test_count_solutions_max_count():
+    """Test that solution counting respects max_count parameter."""
+    board = Board(4)
+    
+    # Create a board with multiple solutions
+    board.set_value(0, 0, 1)
+    
+    # Count solutions with different max_count values
+    solutions1 = board.count_solutions(max_count=1)
+    solutions2 = board.count_solutions(max_count=5)
+    
+    assert solutions1 <= 1
+    assert solutions2 <= 5

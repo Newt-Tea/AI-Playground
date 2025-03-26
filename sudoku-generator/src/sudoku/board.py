@@ -432,8 +432,14 @@ class Board:
         
         # Make a copy of the board to work with
         board_copy = self.copy()
+        # Update all possible values before starting
+        board_copy.update_possible_values()
         
         def backtrack():
+            # If we've already found max_count solutions, stop
+            if solutions[0] >= max_count:
+                return
+                
             # Find the most constrained empty cell using MRV
             mrv_cell = board_copy.get_mrv_cell()
             
@@ -445,26 +451,32 @@ class Board:
             # Get the row and column of the MRV cell
             row, col = mrv_cell
             
+            # Save possible values before any modifications
+            possible_values = set(board_copy.get_cell(row, col).possible_values)
+            
             # Try each possible value for this cell
-            for num in board_copy.get_cell(row, col).possible_values:
-                # If we've already found max_count solutions, stop
-                if solutions[0] >= max_count:
-                    return
+            for num in possible_values:
+                # Place the value
+                board_copy.set_value(row, col, num)
                 
-                # Check if this value is safe to place
-                if board_copy.is_safe(row, col, num):
-                    # Place the value
-                    board_copy.set_value(row, col, num)
+                # Verify the move is valid (important for checking board consistency)
+                if board_copy.is_valid():
                     # Update constraints
-                    board_copy.update_possible_values(row, col)
+                    board_copy.update_possible_values()
                     
                     # Recurse to next cell
                     backtrack()
                     
-                    # Backtrack - remove the value
-                    board_copy.set_value(row, col, None)
-                    # Reset constraints
-                    board_copy.update_possible_values(row, col)
+                    # If we've reached max_count, stop processing further
+                    if solutions[0] >= max_count:
+                        board_copy.set_value(row, col, None)
+                        return
+                
+                # Backtrack - remove the value
+                board_copy.set_value(row, col, None)
+            
+            # Reset constraints after trying all values
+            board_copy.update_possible_values(row, col)
         
         # Start backtracking
         backtrack()
