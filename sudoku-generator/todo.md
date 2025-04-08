@@ -66,11 +66,17 @@
 - [x] Optimize using MRV heuristic
 - [x] Write tests for solution counting
 
+### Basic Clue Removal Strategy
+- [x] Implement remove_clues() method
+- [x] Ensure uniqueness during removal
+- [x] Add randomization to removal process
+- [x] Write tests for clue removal
+
 ### Basic Solver Implementation
-- [ ] Create SudokuSolver class
-- [ ] Implement solve() method with backtracking
-- [ ] Integrate MRV and constraint propagation
-- [ ] Write solver unit tests
+- [x] Create SudokuSolver class
+- [x] Implement solve() method with backtracking
+- [x] Integrate MRV and constraint propagation
+- [x] Write solver unit tests
 
 ### Generator Implementation
 - [ ] Create SudokuGenerator class
@@ -120,3 +126,8 @@
 - [ ] Add visualization capabilities
 - [ ] Implement advanced solving techniques
 - [ ] Create interactive solver/generator mode
+
+
+# Log
+- Generation failing due to max attempts on 9x9 tried 100 attempts no luck
+- Generation success on 4x4 boards

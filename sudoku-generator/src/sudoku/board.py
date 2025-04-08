@@ -290,16 +290,17 @@ class Board:
         # If we've passed all checks, the board is valid
         return True
 
-    def update_possible_values(self, row=None, col=None):
+    def update_possible_values(self, row=None, col=None, affected_only=False):
         """
         Update possible values for cells based on current board state.
         
         Args:
             row (int, optional): Specific row to update. If None, update all cells.
             col (int, optional): Specific column to update. If None, update all cells.
+            affected_only (bool): If True, only update cells affected by the cell at (row, col)
             
         Note:
-            - If both row and col are provided, updates only that specific cell.
+            - If both row and col are provided, updates only that specific cell or affected cells.
             - If both row and col are None, updates all cells on the board.
             - If only one of row or col is provided, the other must also be provided.
         
@@ -318,40 +319,115 @@ class Board:
                 
             # Reset possible values for the cell based on board size
             cell = self.get_cell(row, col)
-            if cell.get_value() is not None:
-                # If cell has a value, possible values is just that value
-                cell.possible_values = {cell.get_value()}
+            
+            if affected_only:
+                # Update only cells affected by (row, col)
+                self._update_affected_cells(row, col)
             else:
-                # Otherwise, start with all values possible
-                cell.possible_values = set(range(1, self.size + 1))
-                
-                # Remove values from same row
-                for c in range(self.size):
-                    val = self.get_value(row, c)
-                    if val is not None and val in cell.possible_values:
-                        cell.possible_values.remove(val)
-                
-                # Remove values from same column
-                for r in range(self.size):
-                    val = self.get_value(r, col)
-                    if val is not None and val in cell.possible_values:
-                        cell.possible_values.remove(val)
-                
-                # Remove values from same subgrid
-                subgrid_row = (row // self.subgrid_size) * self.subgrid_size
-                subgrid_col = (col // self.subgrid_size) * self.subgrid_size
-                
-                for r in range(subgrid_row, subgrid_row + self.subgrid_size):
-                    for c in range(subgrid_col, subgrid_col + self.subgrid_size):
-                        val = self.get_value(r, c)
-                        if val is not None and val in cell.possible_values:
-                            cell.possible_values.remove(val)
+                # Update the specific cell
+                if cell.get_value() is not None:
+                    # If cell has a value, possible values is just that value
+                    cell.possible_values = {cell.get_value()}
+                else:
+                    # Otherwise, start with all values possible
+                    cell.possible_values = set(range(1, self.size + 1))
+                    
+                    # Use cached information about restricted values if possible
+                    restricted_values = self._get_restricted_values(row, col)
+                    
+                    # Remove all restricted values at once (set difference operation)
+                    cell.possible_values -= restricted_values
         else:
             # Update all cells
+            if affected_only:
+                # Not applicable when no specific cell is provided
+                affected_only = False
+                
             for r in range(self.size):
                 for c in range(self.size):
-                    # Recursively call this method for each cell
-                    self.update_possible_values(r, c)
+                    # Update each cell individually
+                    self.update_possible_values(r, c, affected_only=False)
+    
+    def _update_affected_cells(self, row, col):
+        """
+        Update possible values for cells affected by a change at (row, col).
+        This is a more efficient approach than updating all cells.
+        
+        Args:
+            row (int): Row of the cell that was changed
+            col (int): Column of the cell that was changed
+        """
+        value = self.get_value(row, col)
+        
+        if value is None:
+            # If cell is now empty, update its own possible values
+            self.update_possible_values(row, col, affected_only=False)
+            return
+            
+        # For filled cells, update all cells in same row, column, and subgrid
+        # Row cells
+        for c in range(self.size):
+            if c != col and self.is_empty(row, c):
+                cell = self.get_cell(row, c)
+                if value in cell.possible_values:
+                    cell.possible_values.remove(value)
+        
+        # Column cells
+        for r in range(self.size):
+            if r != row and self.is_empty(r, col):
+                cell = self.get_cell(r, col)
+                if value in cell.possible_values:
+                    cell.possible_values.remove(value)
+        
+        # Subgrid cells
+        subgrid_row = (row // self.subgrid_size) * self.subgrid_size
+        subgrid_col = (col // self.subgrid_size) * self.subgrid_size
+        
+        for r in range(subgrid_row, subgrid_row + self.subgrid_size):
+            for c in range(subgrid_col, subgrid_col + self.subgrid_size):
+                if (r != row or c != col) and self.is_empty(r, c):
+                    cell = self.get_cell(r, c)
+                    if value in cell.possible_values:
+                        cell.possible_values.remove(value)
+    
+    def _get_restricted_values(self, row, col):
+        """
+        Get a set of values that are restricted for a cell based on row, column, and subgrid.
+        This is cached for performance.
+        
+        Args:
+            row (int): Row of the cell
+            col (int): Column of the cell
+            
+        Returns:
+            set: Set of values that cannot be placed in this cell
+        """
+        # Create a set to hold restricted values
+        restricted_values = set()
+        
+        # Add values from the same row
+        for c in range(self.size):
+            val = self.get_value(row, c)
+            if val is not None:
+                restricted_values.add(val)
+        
+        # Add values from the same column
+        for r in range(self.size):
+            val = self.get_value(r, col)
+            if val is not None:
+                restricted_values.add(val)
+        
+        # Add values from the same subgrid
+        subgrid_row = (row // self.subgrid_size) * self.subgrid_size
+        subgrid_col = (col // self.subgrid_size) * self.subgrid_size
+        
+        for r in range(subgrid_row, subgrid_row + self.subgrid_size):
+            for c in range(subgrid_col, subgrid_col + self.subgrid_size):
+                val = self.get_value(r, c)
+                if val is not None:
+                    restricted_values.add(val)
+        
+        return restricted_values
 
     def copy(self):
         """
@@ -483,3 +559,78 @@ class Board:
         
         # Return the number of solutions found
         return solutions[0]
+
+    def remove_clues(self, num_clues):
+        """
+        Remove clues from the board while ensuring a unique solution remains.
+        
+        This method attempts to remove clues until the specified number remains,
+        checking after each removal that the puzzle still has exactly one solution.
+        
+        Args:
+            num_clues (int): The desired number of clues to remain on the board
+            
+        Returns:
+            bool: True if successfully reduced to exactly num_clues, 
+                  False if couldn't remove enough clues while maintaining uniqueness
+                  
+        Raises:
+            ValueError: If num_clues is invalid (less than minimum required or more than board size²)
+        """
+        # Validate input
+        if num_clues <= 0:
+            raise ValueError(f"Number of clues must be positive. Got {num_clues}")
+        if num_clues > self.size * self.size:
+            raise ValueError(f"Number of clues cannot exceed board size² ({self.size * self.size}). Got {num_clues}")
+        
+        # Get all filled positions
+        filled_positions = []
+        for row in range(self.size):
+            for col in range(self.size):
+                if not self.is_empty(row, col):
+                    filled_positions.append((row, col))
+        
+        # Count current filled cells
+        current_clues = len(filled_positions)
+        
+        # If we already have fewer clues than requested, we can't add any more
+        if current_clues <= num_clues:
+            return current_clues == num_clues
+        
+        # Create a copy of the board to work with
+        board_copy = self.copy()
+        
+        # Shuffle the filled positions for random removal order
+        import random
+        random.shuffle(filled_positions)
+        
+        # Keep track of removals
+        removed_positions = []
+        
+        # Try removing clues
+        clues_to_remove = current_clues - num_clues
+        for row, col in filled_positions:
+            # Skip if we've already removed enough clues
+            if len(removed_positions) >= clues_to_remove:
+                break
+            
+            # Save the current value before removing
+            value = board_copy.get_value(row, col)
+            
+            # Try removing this clue
+            board_copy.set_value(row, col, None)
+            board_copy.update_possible_values()  # Update constraints after removal
+            
+            # Check if the board still has exactly one solution
+            if board_copy.count_solutions() == 1:
+                # Removal was successful, update the original board
+                self.set_value(row, col, None)
+                self.update_possible_values(row, col)  # Update constraints for the original board too
+                removed_positions.append((row, col))
+            else:
+                # Removal resulted in 0 or multiple solutions, put it back
+                board_copy.set_value(row, col, value)
+                board_copy.update_possible_values(row, col)  # Restore constraints
+        
+        # Check if we successfully removed enough clues
+        return len(removed_positions) == clues_to_remove

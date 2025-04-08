@@ -185,7 +185,7 @@ def test_string_representation():
             break
     assert has_separator
 
-def test_print_grid(capsys):
+def test_print_grid(capsys: pytest.CaptureFixture[str]):
     """Test print_grid method."""
     board = Board(4)
     board.set_value(0, 0, 1)
@@ -767,3 +767,118 @@ def test_count_solutions_max_count():
     
     assert solutions1 <= 1
     assert solutions2 <= 5
+
+def test_remove_clues():
+    """Test removing clues while maintaining uniqueness."""
+    # Create a small board for faster testing
+    board = Board(4)
+    
+    # Create a valid complete board (simple pattern)
+    # [1,2,3,4]
+    # [3,4,1,2]
+    # [2,1,4,3]
+    # [4,3,2,1]
+    values = [
+        [1, 2, 3, 4],
+        [3, 4, 1, 2],
+        [2, 1, 4, 3],
+        [4, 3, 2, 1]
+    ]
+    
+    for row in range(4):
+        for col in range(4):
+            board.set_value(row, col, values[row][col])
+    
+    # Verify board is valid
+    assert board.is_valid()
+    
+    # Count clues before removal
+    filled_before = 16  # 4x4 complete board
+    
+    # Try to remove clues, keeping 10 clues
+    target_clues = 10
+    success = board.remove_clues(target_clues)
+    
+    # Verify removal was successful
+    assert success is True
+    
+    # Count remaining clues
+    remaining_clues = sum(1 for row in range(4) for col in range(4) 
+                         if board.get_value(row, col) is not None)
+    
+    # Verify we have exactly the target number of clues
+    assert remaining_clues == target_clues
+    
+    # Verify board still has a unique solution
+    assert board.count_solutions() == 1
+
+def test_unique_solution_after_removal():
+    """Test that removing clues maintains a unique solution."""
+    # Create a small board with a unique solution
+    board = Board(4)
+    
+    # Fill with a valid pattern
+    values = [
+        [1, 2, 3, 4],
+        [3, 4, 1, 2],
+        [2, 1, 4, 3],
+        [4, 3, 2, 1]
+    ]
+    
+    for row in range(4):
+        for col in range(4):
+            board.set_value(row, col, values[row][col])
+    
+    # Try different target clues
+    for target_clues in [8, 10, 12]:
+        # Create a copy of the board to work with
+        test_board = board.copy()
+        
+        # Remove clues
+        success = test_board.remove_clues(target_clues)
+        
+        # If removal was successful
+        if success:
+            # Verify the solution count is still 1
+            assert test_board.count_solutions() == 1
+            
+            # Count the actual number of clues
+            actual_clues = sum(1 for row in range(4) for col in range(4) 
+                             if test_board.get_value(row, col) is not None)
+            
+            # Verify we have the expected number of clues
+            assert actual_clues == target_clues
+
+def test_efficiency_with_mrv():
+    """Test that the clue removal uses MRV for efficiency."""
+    # This is more of a performance test and actually measuring it would require
+    # comparing execution times with and without MRV
+    # For simplicity, let's just verify that the MRV heuristic is available
+    board = Board(4)
+    
+    # Set up a board with some values
+    for row in range(4):
+        for col in range(4):
+            if board.is_empty(row, col):
+                # Find a value that works
+                for val in range(1, 5):
+                    if board.is_safe(row, col, val):
+                        board.set_value(row, col, val)
+                        break
+    
+    removal_success = board.remove_clues(10)
+    assert removal_success is True
+    
+    # Verify the MRV function works
+    mrv_cell = board.get_mrv_cell()
+    assert mrv_cell is not None
+    
+    # Count clues
+    clues = 0
+    for row in range(4):
+        for col in range(4):
+            if board.get_value(row, col) is not None:
+                clues += 1
+    
+    # Verify we have expected number of clues
+    assert clues == 10
