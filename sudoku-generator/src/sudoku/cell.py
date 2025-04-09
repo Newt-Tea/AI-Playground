@@ -50,6 +50,9 @@ class Cell:
         if value is not None:
             # When setting a value, update possible values to only that value
             self.possible_values = {value}
+        else:
+            # If value is None, reset possible values to all valid numbers
+            self.possible_values = set(range(1, 10))
     
     def get_position(self):
         """

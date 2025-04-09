@@ -91,20 +91,21 @@ class SudokuGenerator:
         if num_clues is None:
             # Standard defaults based on board size
             if self.size == 4:
-                num_clues = 7  # For 4x4 boards
+                num_clues = 12  # For 4x4 boards
             elif self.size == 9:
-                num_clues = 25  # For 9x9 boards
+                num_clues = 40  # For 9x9 boards
             else:
                 # For other sizes, aim for ~30% of cells filled
                 num_clues = max(self.size * self.size // 3, self.size)
         
+        # Set default max_attempts - Increased to ensure we find unique puzzles
         if max_attempts is None:
             if self.size == 4:
-                max_attempts = 3
+                max_attempts = 10  # Increased from 3
             elif self.size == 9:
-                max_attempts = 5
+                max_attempts = 10  # Increased from 5
             else:
-                max_attempts = 10
+                max_attempts = 15  # Increased from 10
         
         # Try multiple times in case we get stuck
         for attempt in range(max_attempts):
@@ -121,10 +122,17 @@ class SudokuGenerator:
             # Use optimized removal strategy
             removal_success = self._remove_clues_optimized(puzzle, num_clues, symmetric)
             
-            # Record removal time - Move this here before the conditional
+            # Record removal time
             self.removal_time = max(time.time() - removal_start, 0.000001)  # minimum time of 1 microsecond
             
             if removal_success:
+                # Final verification: Ensure the puzzle has exactly one solution
+                solution_count = puzzle.count_solutions(max_count=2)
+                if solution_count != 1:
+                    # If not unique, try again with a fresh solution
+                    self.board = None
+                    continue
+                    
                 # Successful generation
                 self.stats = {
                     "size": self.size,
@@ -179,6 +187,10 @@ class SudokuGenerator:
         # This avoids expensive uniqueness checks for obvious cases
         safe_positions, remaining_positions = self._identify_safe_removals(board, positions)
         
+        # Shuffle positions for random removal order to increase variety
+        random.shuffle(safe_positions)
+        random.shuffle(remaining_positions)
+        
         # Track removal progress
         removed_count = 0
         attempted_positions = set()
@@ -215,12 +227,22 @@ class SudokuGenerator:
             for r, c in cells_to_remove:
                 board.update_possible_values(r, c, affected_only=True)
             
-            # No need to check uniqueness for safe removals
+            # Double-check uniqueness
+            if self.size <= 4:
+                # Check if still unique - for small boards full solution counting is fine
+                if board.count_solutions(max_count=2) != 1:
+                    # Put back the clues if not unique
+                    for i, (r, c) in enumerate(cells_to_remove):
+                        board.set_value(r, c, values[i])
+                        board.update_possible_values(r, c, affected_only=True)
+                    continue
+            
+            # Count successful removals
             removed_count += len(cells_to_remove)
         
         # If we haven't removed enough clues yet, continue with remaining positions
         if removed_count < target_to_remove:
-            # Shuffle remaining positions for random removal order
+            # Shuffle remaining again to ensure randomness
             random.shuffle(remaining_positions)
             
             # Use different strategies based on board size
@@ -236,7 +258,6 @@ class SudokuGenerator:
                 success = self._remove_clues_for_small_boards(
                     board, 
                     remaining_positions,
-
                     target_to_remove - removed_count,
                     symmetric,
                     attempted_positions
