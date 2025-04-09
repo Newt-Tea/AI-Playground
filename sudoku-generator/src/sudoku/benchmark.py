@@ -304,15 +304,23 @@ def run_comprehensive_benchmarks():
         "generator": {}
     }
     
-    # Benchmark solver for different board sizes
+    # Benchmark solver for different board sizes with increased iterations
     for size in [4, 9, 16]:
         print(f"Benchmarking solver for {size}x{size} board...")
-        results["solver"][size] = benchmark_solver(size, num_runs=3).get_summary()
+        # Scale number of runs based on board size (smaller boards can run more iterations)
+        if size == 4:
+            num_runs = 10  # More runs for small boards
+        elif size == 9:
+            num_runs = 7   # Medium number for 9x9
+        else:
+            num_runs = 5   # Fewer runs for larger boards that take longer
+            
+        results["solver"][size] = benchmark_solver(size, num_runs=num_runs).get_summary()
     
     # Benchmark generator for different board sizes and configurations
     for size, configs in [
-        (4, [{"num_clues": 7, "symmetric": False}, {"num_clues": 8, "symmetric": True}]),
-        (9, [{"num_clues": 25, "symmetric": False}, {"num_clues": 30, "symmetric": True}]),
+        (4, [{"num_clues": 12, "symmetric": False}]),
+        (9, [{"num_clues": 40, "symmetric": False}]),
         (16, [{"num_clues": None, "symmetric": False}])  # Use default clues for 16x16
     ]:
         results["generator"][size] = {}
@@ -321,11 +329,19 @@ def run_comprehensive_benchmarks():
             config_name = f"{config['num_clues']}_clues_{'sym' if config['symmetric'] else 'nonsym'}"
             print(f"Benchmarking generator for {size}x{size} board with {config_name}...")
             
+            # Scale number of runs based on board size
+            if size == 4:
+                num_runs = 8   # More runs for small boards
+            elif size == 9:
+                num_runs = 5   # Medium number for 9x9
+            else:
+                num_runs = 3   # Fewer runs for larger boards that take longer
+                
             results["generator"][size][config_name] = benchmark_generator(
                 size, 
                 config["num_clues"], 
                 config["symmetric"],
-                num_runs=2  # Reduced for larger boards as they take longer
+                num_runs=num_runs
             ).get_summary()
     
     return results

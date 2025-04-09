@@ -122,13 +122,37 @@ def test_comprehensive_benchmark():
         # In a real benchmark you'd use more runs and configurations
         results = run_comprehensive_benchmarks()
         
+        # Print a more detailed breakdown of the results
+        print("\n==== Comprehensive Benchmark Results ====\n")
+        
+        # Print solver results in a more readable format
+        print("Solver Benchmark Results:")
+        for size, result in results['solver'].items():
+            print(f"\n  {size}x{size} Board:")
+            if isinstance(result, dict) and 'time' in result:
+                print(f"    Mean time: {result['time']['mean']:.6f} seconds")
+                print(f"    Mean iterations: {result['iterations']['mean']:.1f}")
+                print(f"    Success rate: {result['success_rate']*100:.1f}%")
+            else:
+                print(f"    No valid results: {result}")
+        
+        # Print generator results in a more readable format
+        print("\nGenerator Benchmark Results:")
+        for size, configs in results['generator'].items():
+            print(f"\n  {size}x{size} Board:")
+            for config_name, result in configs.items():
+                print(f"    Configuration: {config_name}")
+                if isinstance(result, dict) and 'time' in result:
+                    print(f"      Mean time: {result['time']['mean']:.6f} seconds")
+                    print(f"      Mean iterations: {result['iterations']['mean']:.1f}")
+                    print(f"      Success rate: {result['success_rate']*100:.1f}%")
+                else:
+                    print(f"      No valid results: {result}")
+        
         # Verify results structure
         assert 'solver' in results
         assert 'generator' in results
         
-        # Print a sample of the results
-        print(f"Solver results for 4x4: {results['solver'].get(4, 'Not run')}")
-        print(f"Generator results for 4x4: {results['generator'].get(4, {}).get('7_clues_nonsym', 'Not run')}")
     except RuntimeError as e:
         # If generation fails after multiple attempts, consider the test passed
         # The purpose is to test the benchmark framework, not the generator's ability
