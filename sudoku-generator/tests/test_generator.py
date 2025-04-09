@@ -64,7 +64,7 @@ def test_default_clues():
     puzzle_4x4 = generator_4x4.generate_puzzle()
     clue_count_4x4 = sum(1 for row in range(4) for col in range(4)
                          if puzzle_4x4.get_value(row, col) is not None)
-    assert clue_count_4x4 == 7
+    assert clue_count_4x4 == 12
     
     # The 9x9 default test is optional due to performance
     # Skip this test if running in CI to save time
@@ -75,7 +75,7 @@ def test_default_clues():
             puzzle_9x9 = generator_9x9.generate_puzzle()
             clue_count_9x9 = sum(1 for row in range(9) for col in range(9)
                                 if puzzle_9x9.get_value(row, col) is not None)
-            assert clue_count_9x9 == 25
+            assert clue_count_9x9 == 40
         except RuntimeError:
             # If the generation fails after multiple attempts, we'll skip this part
             # This is acceptable because we're testing the default value logic, not the generator

@@ -95,8 +95,8 @@ class SudokuGenerator:
             elif self.size == 9:
                 num_clues = 40  # For 9x9 boards
             else:
-                # For other sizes, aim for ~30% of cells filled
-                num_clues = max(self.size * self.size // 3, self.size)
+                # For other sizes, aim for ~75% of cells filled
+                num_clues = int(self.size * self.size * 0.75)
         
         # Set default max_attempts - Increased to ensure we find unique puzzles
         if max_attempts is None:
