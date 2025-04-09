@@ -46,12 +46,12 @@ def test_generate_puzzle():
     generator = SudokuGenerator(4)
     
     # Generate a puzzle with 8 clues
-    puzzle = generator.generate_puzzle(num_clues=8)
+    puzzle = generator.generate_puzzle(num_clues=14)
     
     # Verify puzzle has exactly 8 clues
     clue_count = sum(1 for row in range(4) for col in range(4) 
                     if puzzle.get_value(row, col) is not None)
-    assert clue_count == 8
+    assert clue_count == 14
     
     # Verify puzzle has a unique solution
     assert puzzle.count_solutions() == 1

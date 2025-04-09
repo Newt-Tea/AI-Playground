@@ -2,7 +2,7 @@
 Tests for the benchmarking functionality.
 """
 import pytest
-from src.sudoku.benchmark import SudokoBenchmark
+from src.sudoku.benchmark import BenchmarkResult, benchmark_solver, benchmark_generator, run_comprehensive_benchmarks
 from src.sudoku.solver import SudokuSolver
 from src.sudoku.generator import SudokuGenerator
 
@@ -81,35 +81,35 @@ def test_performance_comparison():
 
 def test_benchmark_solver():
     """Test the solver benchmarking functionality."""
-    benchmark = SudokoBenchmark()
-    
     # Run a quick benchmark on 4x4 with just 2 runs
-    results = benchmark.benchmark_solver(board_size=4, num_runs=2, difficulty='easy')
+    results = benchmark_solver(board_size=4, num_runs=2)
     
     # Verify results contain performance metrics
-    assert 'avg_time_sec' in results
-    assert 'avg_iterations' in results
-    assert 'success_rate' in results
-    assert results['board_size'] == 4
+    summary = results.get_summary()
+    assert summary is not None
+    assert 'time' in summary
+    assert 'iterations' in summary
+    assert 'success_rate' in summary
+    assert summary['board_size'] == 4
     
     # Print results for reference
-    benchmark.print_results()
+    print(results)
 
 def test_benchmark_generator():
     """Test the generator benchmarking functionality."""
-    benchmark = SudokoBenchmark()
-    
     # Run a quick benchmark on 4x4 with just 2 runs
-    results = benchmark.benchmark_generator(board_size=4, num_runs=2)
+    results = benchmark_generator(board_size=4, num_runs=2)
     
     # Verify results contain performance metrics
-    assert 'avg_generation_time_sec' in results
-    assert 'avg_removal_time_sec' in results
-    assert 'success_rate' in results
-    assert results['board_size'] == 4
+    summary = results.get_summary()
+    assert summary is not None
+    assert 'time' in summary
+    assert 'iterations' in summary
+    assert 'success_rate' in summary
+    assert summary['board_size'] == 4
     
     # Print results for reference
-    benchmark.print_results()
+    print(results)
 
 @pytest.mark.slow
 def test_comprehensive_benchmark():
@@ -117,19 +117,18 @@ def test_comprehensive_benchmark():
     Run a comprehensive benchmark across different configurations.
     This test is marked as 'slow' and can be skipped with pytest -m "not slow".
     """
-    benchmark = SudokoBenchmark()
-    
     try:
         # Run a very limited version for testing
         # In a real benchmark you'd use more runs and configurations
-        results = benchmark.run_comprehensive_benchmark()
+        results = run_comprehensive_benchmarks()
         
         # Verify results structure
         assert 'solver' in results
         assert 'generator' in results
         
-        # Print comprehensive results
-        benchmark.print_results()
+        # Print a sample of the results
+        print(f"Solver results for 4x4: {results['solver'].get(4, 'Not run')}")
+        print(f"Generator results for 4x4: {results['generator'].get(4, {}).get('7_clues_nonsym', 'Not run')}")
     except RuntimeError as e:
         # If generation fails after multiple attempts, consider the test passed
         # The purpose is to test the benchmark framework, not the generator's ability
