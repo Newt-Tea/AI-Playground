@@ -28,50 +28,9 @@ Example:
 """
 
 # Use relative imports for board
-from .board import Board
-from .cell import Cell
-
-__all__ = ['Board', 'Cell']
-
-# This is more of a performance test and actually measuring it would require
-# comparing execution times with and without MRV
-# For simplicity, let's just verify that the MRV heuristic is available
-def test_board_operations():
-    board = Board(4)
-    
-    # Set up a board with some values
-    for row in range(2):
-        for col in range(2):
-            board.set_value(row, col, ((row+col) % 4) + 1)
-    
-    # Verify the MRV function works
-    print(board)
-    mrv_cell = board.get_mrv_cell()
-    print("Cell with minimum remaining values:", mrv_cell)
-    
-    # Also verify that removing clues works with MRV
-    # Fill the board completely
-    for row in range(4):
-        for col in range(4):
-            if board.is_empty(row, col):
-                # Find a value that works
-                for val in range(1, 5):
-                    if board.is_safe(row, col, val):
-                        board.set_value(row, col, val)
-                        break
-    
-    # Now try removing clues
-    print(board)
-    removal_success = board.remove_clues(10)
-    print(removal_success)
-    print(board)
-    
-    # Count clues
-    clues = sum(1 for row in range(4) for col in range(4) 
-                if board.get_value(row, col) is not None)
-    
-    # Verify we have expected number of clues
-    print(clues)
 
 
-test_board_operations()
+__all__ = ['Board', 'Cell', 'SudokuSolver', 'SudokuGenerator', 'Benchmark', 'cli']
+
+
+

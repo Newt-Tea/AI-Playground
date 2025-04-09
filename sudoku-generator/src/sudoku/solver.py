@@ -3,7 +3,7 @@ Solver module for Sudoku generator.
 
 This module contains the SudokuSolver class which solves Sudoku puzzles.
 """
-from .board import Board
+from src.sudoku.board import Board
 import time
 import cProfile
 import pstats
@@ -29,7 +29,7 @@ class SudokuSolver:
         Args:
             board (Board): The Sudoku board to solve
         """
-        self.board = board.copy()  # treate a deep copy to avoid modifying original
+        self.board = board.copy()  # create a deep copy to avoid modifying original
         self.affected_cells_cache = {}  # Reset cache
     
     def solve(self, board=None, profile=False):

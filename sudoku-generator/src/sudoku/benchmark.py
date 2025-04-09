@@ -1,284 +1,382 @@
 """
-Benchmarking module for Sudoku generator.
+Benchmark module for measuring Sudoku generator and solver performance.
 
-This module provides performance testing utilities for the Sudoku generator.
+This module provides tools for benchmarking the Sudoku generator and solver
+functionality across different board sizes and configurations.
 """
+
 import time
 import gc
 import statistics
 import psutil
 import os
-from .board import Board
-from .solver import SudokuSolver
-from .generator import SudokuGenerator
+from contextlib import contextmanager
+from src.sudoku.generator import SudokuGenerator
+from src.sudoku.solver import SudokuSolver
+from src.sudoku.board import Board
 
-class SudokoBenchmark:
-    """Class for benchmarking Sudoku generator and solver performance."""
+class BenchmarkResult:
+    """Container for benchmark results."""
     
     def __init__(self):
-        """Initialize a new benchmark instance."""
-        self.results = {}
+        """Initialize an empty benchmark result."""
+        self.times = []
+        self.iterations = []
+        self.memory_usages = []
+        self.success_rate = 0.0
+        self.board_size = None
+        self.num_clues = None
+        self.symmetric = None
     
-    def benchmark_solver(self, board_size=9, num_runs=5, difficulty='medium'):
+    def add_run(self, time_taken, iterations, memory_usage):
         """
-        Benchmark the solver performance.
+        Add the results from a single benchmark run.
         
         Args:
-            board_size (int): Size of the board to test
-            num_runs (int): Number of runs for averaging
-            difficulty (str): Difficulty level ('easy', 'medium', 'hard')
-                             Controls the number of clues
+            time_taken (float): Time taken for the run in seconds
+            iterations (int): Number of iterations/steps performed
+            memory_usage (float): Peak memory usage during the run in MB
+        """
+        self.times.append(time_taken)
+        self.iterations.append(iterations)
+        self.memory_usages.append(memory_usage)
+    
+    def finalize(self, success_count, total_runs, board_size, num_clues=None, symmetric=False):
+        """
+        Finalize the benchmark result with summary statistics.
+        
+        Args:
+            success_count (int): Number of successful runs
+            total_runs (int): Total number of runs attempted
+            board_size (int): Size of the board used in the benchmark
+            num_clues (int, optional): Number of clues for puzzle generation
+            symmetric (bool): Whether symmetry was used in puzzle generation
+        """
+        self.success_rate = success_count / total_runs if total_runs > 0 else 0.0
+        self.board_size = board_size
+        self.num_clues = num_clues
+        self.symmetric = symmetric
+    
+    def get_summary(self):
+        """
+        Get a summary of the benchmark results.
         
         Returns:
-            dict: Performance metrics
+            dict: Dictionary containing benchmark summary statistics
         """
-        # Determine number of clues based on difficulty
-        if difficulty == 'easy':
-            clue_factor = 0.5  # 50% of cells filled
-        elif difficulty == 'medium':
-            clue_factor = 0.35  # 35% of cells filled
-        else:  # hard
-            clue_factor = 0.25  # 25% of cells filled
-            
-        num_clues = int(board_size * board_size * clue_factor)
+        if not self.times:
+            return {"error": "No benchmark data available"}
         
-        # Create generator and solver
-        generator = SudokuGenerator(board_size)
-        solver = SudokuSolver()
-        
-        # Metrics to track
-        solve_times = []
-        iterations_list = []
-        memory_usages = []
-        success_count = 0
-        
-        # Generate and solve multiple puzzles
-        for _ in range(num_runs):
-            # Generate a puzzle
-            puzzle = generator.generate_puzzle(num_clues=num_clues)
-            
-            # Force garbage collection for more accurate timing
-            gc.collect()
-            
-            # Measure memory before solving
-            process = psutil.Process(os.getpid())
-            mem_before = process.memory_info().rss / (1024 * 1024)  # Convert to MB
-            
-            # Solve it and measure performance
-            success = solver.solve(puzzle)
-            
-            # Measure memory after solving
-            mem_after = process.memory_info().rss / (1024 * 1024)  # Convert to MB
-            memory_usages.append(mem_after - mem_before)
-            
-            if success:
-                success_count += 1
-                solve_times.append(solver.solve_time)
-                iterations_list.append(solver.iterations)
-        
-        # Calculate statistics
-        if solve_times:
-            avg_time = statistics.mean(solve_times)
-            avg_iterations = statistics.mean(iterations_list)
-            min_time = min(solve_times)
-            max_time = max(solve_times)
-            avg_memory = statistics.mean(memory_usages)
-        else:
-            avg_time = avg_iterations = min_time = max_time = avg_memory = 0
-        
-        success_rate = (success_count / num_runs) * 100 if num_runs > 0 else 0
-        
-        # Store and return results
-        result = {
-            'board_size': board_size,
-            'num_clues': num_clues,
-            'difficulty': difficulty,
-            'num_runs': num_runs,
-            'avg_time_sec': avg_time,
-            'min_time_sec': min_time,
-            'max_time_sec': max_time,
-            'avg_iterations': avg_iterations,
-            'avg_memory_mb': avg_memory,
-            'success_rate': success_rate
+        time_stats = {
+            "mean": statistics.mean(self.times),
+            "median": statistics.median(self.times),
+            "min": min(self.times),
+            "max": max(self.times)
         }
         
-        self.results['solver'] = result
-        return result
-    
-    def benchmark_generator(self, board_size=9, num_runs=5, num_clues=None, symmetric=False):
-        """
-        Benchmark the generator performance.
+        if len(self.times) > 1:
+            time_stats["stdev"] = statistics.stdev(self.times)
         
-        Args:
-            board_size (int): Size of the board to generate
-            num_runs (int): Number of runs for averaging
-            num_clues (int, optional): Number of clues to leave
-            symmetric (bool): Whether to use symmetric clue removal
+        memory_stats = {
+            "mean_mb": statistics.mean(self.memory_usages),
+            "max_mb": max(self.memory_usages)
+        }
+        
+        iteration_stats = {
+            "mean": statistics.mean(self.iterations),
+            "median": statistics.median(self.iterations),
+            "min": min(self.iterations),
+            "max": max(self.iterations)
+        }
+        
+        return {
+            "board_size": self.board_size,
+            "num_clues": self.num_clues,
+            "symmetric": self.symmetric,
+            "success_rate": self.success_rate,
+            "time": time_stats,
+            "memory": memory_stats,
+            "iterations": iteration_stats
+        }
+    
+    def __str__(self):
+        """
+        String representation of the benchmark result.
         
         Returns:
-            dict: Performance metrics
+            str: Formatted benchmark summary
         """
-        # Default num_clues if not specified
-        if num_clues is None:
-            if board_size == 4:
-                num_clues = 7
-            elif board_size == 9:
-                num_clues = 25
-            else:
-                num_clues = board_size * board_size // 3
+        summary = self.get_summary()
+        if "error" in summary:
+            return summary["error"]
         
-        # Metrics to track
-        generation_times = []
-        removal_times = []
-        total_times = []
-        memory_usages = []
-        success_count = 0
+        result = []
+        result.append(f"Benchmark Summary (Board size: {summary['board_size']})")
         
-        # Generate multiple puzzles
-        for _ in range(num_runs):
-            gc.collect()  # Force garbage collection
-            
-            # Create generator and measure performance
-            process = psutil.Process(os.getpid())
-            mem_before = process.memory_info().rss / (1024 * 1024)  # Convert to MB
-            
-            start_time = time.time()
-            
+        if summary['num_clues'] is not None:
+            result.append(f"Puzzle generation with {summary['num_clues']} clues")
+            result.append(f"Symmetric: {summary['symmetric']}")
+        
+        result.append(f"Success Rate: {summary['success_rate']*100:.1f}%")
+        result.append(f"Time (seconds):")
+        result.append(f"  Mean: {summary['time']['mean']:.6f}")
+        result.append(f"  Median: {summary['time']['median']:.6f}")
+        result.append(f"  Min: {summary['time']['min']:.6f}")
+        result.append(f"  Max: {summary['time']['max']:.6f}")
+        
+        if "stdev" in summary["time"]:
+            result.append(f"  Std Dev: {summary['time']['stdev']:.6f}")
+        
+        result.append(f"Memory Usage (MB):")
+        result.append(f"  Mean: {summary['memory']['mean_mb']:.2f}")
+        result.append(f"  Max: {summary['memory']['max_mb']:.2f}")
+        
+        result.append(f"Iterations:")
+        result.append(f"  Mean: {summary['iterations']['mean']:.1f}")
+        result.append(f"  Median: {summary['iterations']['median']}")
+        
+        return "\n".join(result)
+
+
+@contextmanager
+def memory_usage_monitor():
+    """
+    Context manager to monitor memory usage during a block of code.
+    
+    Yields:
+        float: Peak memory usage in MB
+    """
+    process = psutil.Process(os.getpid())
+    
+    # Record the starting memory usage
+    start_memory = process.memory_info().rss / (1024 * 1024)  # Convert to MB
+    peak_memory = start_memory
+    
+    try:
+        yield lambda: peak_memory - start_memory
+    finally:
+        # Record the final memory usage
+        current_memory = process.memory_info().rss / (1024 * 1024)
+        peak_memory = max(peak_memory, current_memory)
+
+
+def benchmark_solver(board_size=9, num_runs=5, profile=False):
+    """
+    Benchmark the Sudoku solver on boards of specified size.
+    
+    Args:
+        board_size (int): Size of the Sudoku board to benchmark (default: 9)
+        num_runs (int): Number of benchmark runs (default: 5)
+        profile (bool): Whether to collect profiling data
+        
+    Returns:
+        BenchmarkResult: Object containing benchmark results and statistics
+    """
+    generator = SudokuGenerator(board_size)
+    solver = SudokuSolver()
+    result = BenchmarkResult()
+    
+    success_count = 0
+    
+    for _ in range(num_runs):
+        # Generate a complete board
+        full_board = generator.generate_solution()
+        
+        # Make a random puzzle with half the cells revealed
+        puzzle = full_board.copy()
+        
+        # Remove a fixed percentage of clues
+        target_clues = board_size * board_size // 2
+        
+        # Make a copy with 50% of cells empty for testing solver performance
+        positions = [(row, col) for row in range(board_size) for col in range(board_size)]
+        import random
+        random.shuffle(positions)
+        
+        # Keep only the target number of clues
+        for i, (row, col) in enumerate(positions):
+            if i >= target_clues:
+                puzzle.set_value(row, col, None)
+        
+        # Force garbage collection before benchmark
+        gc.collect()
+        
+        # Benchmark solving
+        with memory_usage_monitor() as memory_getter:
             try:
-                generator = SudokuGenerator(board_size)
-                # Generate solution and measure time
-                solution = generator.generate_solution()
-                generation_times.append(generator.generation_time)
+                # Record start time
+                start_time = time.time()
                 
-                # Generate puzzle and measure time
-                puzzle = generator.generate_puzzle(num_clues=num_clues, symmetric=symmetric)
-                removal_times.append(generator.removal_time)
+                # Solve the puzzle
+                success = solver.solve(puzzle, profile=profile)
                 
-                # Track total time
-                total_times.append(time.time() - start_time)
+                # Record end time
+                end_time = time.time()
                 
-                # Measure memory usage
-                mem_after = process.memory_info().rss / (1024 * 1024)  # Convert to MB
-                memory_usages.append(mem_after - mem_before)
-                
-                # Check if puzzle has a unique solution
-                if puzzle.count_solutions() == 1:
+                if success:
                     success_count += 1
-            except Exception:
-                # Count as a failure
-                pass
-        
-        # Calculate statistics
-        if generation_times:
-            avg_generation = statistics.mean(generation_times)
-            avg_removal = statistics.mean(removal_times)
-            avg_total = statistics.mean(total_times)
-            min_total = min(total_times)
-            max_total = max(total_times)
-            avg_memory = statistics.mean(memory_usages) if memory_usages else 0
-        else:
-            avg_generation = avg_removal = avg_total = min_total = max_total = avg_memory = 0
-        
-        success_rate = (success_count / num_runs) * 100 if num_runs > 0 else 0
-        
-        # Store and return results
-        result = {
-            'board_size': board_size,
-            'num_clues': num_clues,
-            'symmetric': symmetric,
-            'num_runs': num_runs,
-            'avg_generation_time_sec': avg_generation,
-            'avg_removal_time_sec': avg_removal,
-            'avg_total_time_sec': avg_total,
-            'min_total_time_sec': min_total,
-            'max_total_time_sec': max_total,
-            'avg_memory_mb': avg_memory,
-            'success_rate': success_rate
-        }
-        
-        self.results['generator'] = result
-        return result
+                    
+                    # Add performance data
+                    result.add_run(
+                        end_time - start_time,
+                        solver.iterations,
+                        memory_getter()
+                    )
+            except Exception as e:
+                print(f"Error during solving benchmark: {e}")
+                continue
     
-    def run_comprehensive_benchmark(self):
-        """
-        Run a comprehensive benchmark across different board sizes and difficulties.
+    # Finalize the benchmark result
+    result.finalize(success_count, num_runs, board_size)
+    
+    return result
+
+
+def benchmark_generator(board_size=9, num_clues=None, symmetric=False, num_runs=3):
+    """
+    Benchmark the Sudoku puzzle generator.
+    
+    Args:
+        board_size (int): Size of the Sudoku board to benchmark (default: 9)
+        num_clues (int, optional): Number of clues to leave in the puzzle
+        symmetric (bool): Whether to generate symmetric puzzles
+        num_runs (int): Number of benchmark runs (default: 3)
         
-        Returns:
-            dict: Comprehensive benchmark results
-        """
-        results = {'solver': {}, 'generator': {}}
+    Returns:
+        BenchmarkResult: Object containing benchmark results and statistics
+    """
+    generator = SudokuGenerator(board_size)
+    result = BenchmarkResult()
+    
+    success_count = 0
+    
+    for _ in range(num_runs):
+        # Force garbage collection before benchmark
+        gc.collect()
         
-        # Test different board sizes
-        for board_size in [4, 9]:
-            # Benchmark solver at different difficulties
-            for difficulty in ['easy', 'medium', 'hard']:
-                key = f'size_{board_size}_{difficulty}'
-                results['solver'][key] = self.benchmark_solver(
-                    board_size=board_size, 
-                    num_runs=3, 
-                    difficulty=difficulty
-                )
-            
-            # Benchmark generator with different clue counts
-            # Use more reasonable clue counts that ensure uniqueness
-            if board_size == 4:
-                # 4x4 puzzles need at least 4-5 clues for uniqueness
-                clue_counts = [6, 8, 10]
-            else:  # size 9
-                # 9x9 puzzles need at least 17 clues for uniqueness
-                clue_counts = [20, 25, 30]
+        # Benchmark generation
+        with memory_usage_monitor() as memory_getter:
+            try:
+                # Record start time
+                start_time = time.time()
                 
-            for num_clues in clue_counts:
-                key = f'size_{board_size}_clues_{num_clues}'
-                results['generator'][key] = self.benchmark_generator(
-                    board_size=board_size,
-                    num_runs=3,
-                    num_clues=num_clues
-                )
-        
-        self.results['comprehensive'] = results
-        return results
+                # Generate a puzzle
+                puzzle = generator.generate_puzzle(num_clues=num_clues, symmetric=symmetric)
+                
+                # Record end time
+                end_time = time.time()
+                
+                # Verify the generated puzzle has the requested number of clues
+                filled_cells = sum(1 for row in range(board_size) for col in range(board_size) 
+                                  if not puzzle.is_empty(row, col))
+                
+                if num_clues is None or filled_cells == num_clues:
+                    success_count += 1
+                    
+                    # Extract iterations from generator stats
+                    iterations = generator.stats.get("attempts", 1)
+                    
+                    # Add performance data
+                    result.add_run(
+                        end_time - start_time,
+                        iterations,
+                        memory_getter()
+                    )
+            except Exception as e:
+                print(f"Error during generation benchmark: {e}")
+                continue
     
-    def print_results(self):
-        """Print benchmark results in a formatted way."""
-        print("\n===== SUDOKU BENCHMARK RESULTS =====\n")
+    # Finalize the benchmark result
+    result.finalize(success_count, num_runs, board_size, num_clues, symmetric)
+    
+    return result
+
+
+def run_comprehensive_benchmarks():
+    """
+    Run a comprehensive suite of benchmarks testing various board sizes and configurations.
+    
+    Returns:
+        dict: Dictionary of benchmark results organized by category and configuration
+    """
+    results = {
+        "solver": {},
+        "generator": {}
+    }
+    
+    # Benchmark solver for different board sizes
+    for size in [4, 9, 16]:
+        print(f"Benchmarking solver for {size}x{size} board...")
+        results["solver"][size] = benchmark_solver(size, num_runs=3).get_summary()
+    
+    # Benchmark generator for different board sizes and configurations
+    for size, configs in [
+        (4, [{"num_clues": 7, "symmetric": False}, {"num_clues": 8, "symmetric": True}]),
+        (9, [{"num_clues": 25, "symmetric": False}, {"num_clues": 30, "symmetric": True}]),
+        (16, [{"num_clues": None, "symmetric": False}])  # Use default clues for 16x16
+    ]:
+        results["generator"][size] = {}
         
-        # Print solver results
-        if 'solver' in self.results:
-            solver = self.results['solver']
-            print(f"SOLVER BENCHMARK (Size: {solver['board_size']}x{solver['board_size']}, " 
-                 f"Difficulty: {solver['difficulty']})")
-            print(f"- Clues: {solver['num_clues']}")
-            print(f"- Avg time: {solver['avg_time_sec']:.6f} seconds")
-            print(f"- Min/Max time: {solver['min_time_sec']:.6f}/{solver['max_time_sec']:.6f} seconds")
-            print(f"- Avg iterations: {solver['avg_iterations']:.1f}")
-            print(f"- Avg memory usage: {solver.get('avg_memory_mb', 0):.2f} MB")
-            print(f"- Success rate: {solver['success_rate']:.1f}%\n")
-        
-        # Print generator results
-        if 'generator' in self.results:
-            gen = self.results['generator']
-            print(f"GENERATOR BENCHMARK (Size: {gen['board_size']}x{gen['board_size']})")
-            print(f"- Target clues: {gen['num_clues']}")
-            print(f"- Symmetric: {'Yes' if gen.get('symmetric', False) else 'No'}")
-            print(f"- Avg solution generation time: {gen['avg_generation_time_sec']:.6f} seconds")
-            print(f"- Avg clue removal time: {gen['avg_removal_time_sec']:.6f} seconds")
-            print(f"- Avg total time: {gen['avg_total_time_sec']:.6f} seconds")
-            print(f"- Min/Max total time: {gen['min_total_time_sec']:.6f}/{gen['max_total_time_sec']:.6f} seconds")
-            print(f"- Avg memory usage: {gen.get('avg_memory_mb', 0):.2f} MB")
-            print(f"- Success rate: {gen['success_rate']:.1f}%\n")
-        
-        # Print comprehensive results
-        if 'comprehensive' in self.results:
-            print("COMPREHENSIVE BENCHMARK SUMMARY:")
-            comp = self.results['comprehensive']
+        for config in configs:
+            config_name = f"{config['num_clues']}_clues_{'sym' if config['symmetric'] else 'nonsym'}"
+            print(f"Benchmarking generator for {size}x{size} board with {config_name}...")
             
-            print("\nSolver Performance:")
-            for key, data in comp['solver'].items():
-                print(f"- {key}: {data['avg_time_sec']:.6f} seconds, "
-                     f"{data['success_rate']:.1f}% success rate")
-            
-            print("\nGenerator Performance:")
-            for key, data in comp['generator'].items():
-                print(f"- {key}: {data['avg_total_time_sec']:.6f} seconds, "
-                     f"{data['success_rate']:.1f}% success rate")
+            results["generator"][size][config_name] = benchmark_generator(
+                size, 
+                config["num_clues"], 
+                config["symmetric"],
+                num_runs=2  # Reduced for larger boards as they take longer
+            ).get_summary()
+    
+    return results
+
+
+def compare_implementations(old_func, new_func, input_data, num_runs=10):
+    """
+    Compare performance of two implementations of the same function.
+    Useful for measuring the impact of optimizations.
+    
+    Args:
+        old_func (callable): The original function implementation
+        new_func (callable): The optimized function implementation
+        input_data: Input data to pass to both functions
+        num_runs (int): Number of runs for each function
+        
+    Returns:
+        dict: Performance comparison statistics
+    """
+    old_times = []
+    new_times = []
+    
+    # Benchmark old implementation
+    for _ in range(num_runs):
+        gc.collect()
+        start_time = time.time()
+        old_func(input_data)
+        old_times.append(time.time() - start_time)
+    
+    # Benchmark new implementation
+    for _ in range(num_runs):
+        gc.collect()
+        start_time = time.time()
+        new_func(input_data)
+        new_times.append(time.time() - start_time)
+    
+    # Calculate statistics
+    old_avg = statistics.mean(old_times)
+    new_avg = statistics.mean(new_times)
+    improvement = (old_avg - new_avg) / old_avg * 100 if old_avg > 0 else 0
+    
+    return {
+        "old_implementation": {
+            "mean": old_avg,
+            "min": min(old_times),
+            "max": max(old_times)
+        },
+        "new_implementation": {
+            "mean": new_avg,
+            "min": min(new_times),
+            "max": max(new_times)
+        },
+        "improvement_percentage": improvement
+    }

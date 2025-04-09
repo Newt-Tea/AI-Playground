@@ -4,7 +4,7 @@ Board module for Sudoku generator.
 This module contains the Board class which represents a Sudoku grid.
 """
 import math
-from .cell import Cell
+from src.sudoku.cell import Cell
 
 class Board:
     """Represents a Sudoku board."""
