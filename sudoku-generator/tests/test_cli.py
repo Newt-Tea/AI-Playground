@@ -33,7 +33,6 @@ class TestCLI:
         args = parser.parse_args([])
         assert args.size == 9
         assert args.clues is None
-        assert not args.symmetric
         assert args.format == "text"
         assert args.output is None
         assert not args.solve
@@ -45,7 +44,6 @@ class TestCLI:
         args = parser.parse_args([
             "--size", "4",
             "--clues", "7",
-            "--symmetric",
             "--format", "json",
             "--output", "output.json",
             "--solve",
@@ -55,7 +53,6 @@ class TestCLI:
         ])
         assert args.size == 4
         assert args.clues == 7
-        assert args.symmetric
         assert args.format == "json"
         assert args.output == "output.json"
         assert args.solve
@@ -249,7 +246,6 @@ class TestCLI:
         args = argparse.Namespace(
             size=9,
             clues=None,
-            symmetric=False,
             solve=False,
             stats=False
         )
@@ -261,8 +257,7 @@ class TestCLI:
         
         # Check that generate_puzzle was called correctly
         mock_generator.generate_puzzle.assert_called_once_with(
-            num_clues=None,
-            symmetric=False
+            num_clues=None
         )
         
         # Check that the correct objects were returned
@@ -278,7 +273,6 @@ class TestCLI:
         args = argparse.Namespace(
             size=4,
             clues=7,
-            symmetric=True,
             solve=True,
             stats=True
         )
@@ -290,8 +284,7 @@ class TestCLI:
         
         # Check that generate_puzzle was called correctly
         mock_generator.generate_puzzle.assert_called_once_with(
-            num_clues=7,
-            symmetric=True
+            num_clues=7
         )
         
         # Check that the correct objects were returned

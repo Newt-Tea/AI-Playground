@@ -71,14 +71,13 @@ class SudokuGenerator:
 
         return self.board.copy()
     
-    def generate_puzzle(self, num_clues=None, symmetric=False, max_attempts=None):
+    def generate_puzzle(self, num_clues=None, max_attempts=None):
         """
         Generate a Sudoku puzzle by removing clues from a complete solution.
         
         Args:
             num_clues (int, optional): The number of clues to leave in the puzzle.
                 If None, will use a default based on board size.
-            symmetric (bool): Whether to remove clues symmetrically (default: False)
             max_attempts (int): Maximum number of generation attempts
             
         Returns:
@@ -95,7 +94,7 @@ class SudokuGenerator:
             elif self.size == 9:
                 num_clues = 40  # For 9x9 boards
             else:
-                # For other sizes, aim for ~75% of cells filled
+                # 75% of the board for larger sizes
                 num_clues = int(self.size * self.size * 0.75)
         
         # Set default max_attempts - Increased to ensure we find unique puzzles
@@ -120,7 +119,7 @@ class SudokuGenerator:
             removal_start = time.time()
             
             # Use optimized removal strategy
-            removal_success = self._remove_clues_optimized(puzzle, num_clues, symmetric)
+            removal_success = self._remove_clues_optimized(puzzle, num_clues)
             
             # Record removal time
             self.removal_time = max(time.time() - removal_start, 0.000001)  # minimum time of 1 microsecond
@@ -137,7 +136,6 @@ class SudokuGenerator:
                 self.stats = {
                     "size": self.size,
                     "num_clues": num_clues,
-                    "symmetric": symmetric,
                     "generation_time": time.time() - generation_start,
                     "solution_generation_time": self.generation_time,
                     "clue_removal_time": self.removal_time,
@@ -155,7 +153,7 @@ class SudokuGenerator:
         # If we reach here, all attempts failed
         raise RuntimeError(f"Failed to generate puzzle after {max_attempts} attempts")
     
-    def _remove_clues_optimized(self, board, num_clues, symmetric=False):
+    def _remove_clues_optimized(self, board, num_clues):
         """
         Optimized strategy for removing clues while maintaining uniqueness.
         Uses a smart two-phase approach with difficulty estimation.
@@ -163,7 +161,6 @@ class SudokuGenerator:
         Args:
             board (Board): The board to remove clues from
             num_clues (int): The target number of clues to leave
-            symmetric (bool): Whether to remove clues symmetrically
             
         Returns:
             bool: True if successfully removed clues to reach target, False otherwise
@@ -208,13 +205,8 @@ class SudokuGenerator:
             # Mark as attempted
             attempted_positions.add((row, col))
             
-            # Determine cells to remove (original and symmetric if needed)
+            # Determine cells to remove
             cells_to_remove = [(row, col)]
-            if symmetric:
-                sym_row, sym_col = self.size - 1 - row, self.size - 1 - col
-                if (row, col) != (sym_row, sym_col) and not board.is_empty(sym_row, sym_col):
-                    cells_to_remove.append((sym_row, sym_col))
-                    attempted_positions.add((sym_row, sym_col))
             
             # Save values before removal
             values = [board.get_value(r, c) for r, c in cells_to_remove]
@@ -238,7 +230,7 @@ class SudokuGenerator:
                     continue
             
             # Count successful removals
-            removed_count += len(cells_to_remove)
+            removed_count += 1
         
         # If we haven't removed enough clues yet, continue with remaining positions
         if removed_count < target_to_remove:
@@ -251,7 +243,6 @@ class SudokuGenerator:
                     board, 
                     remaining_positions, 
                     target_to_remove - removed_count, 
-                    symmetric,
                     attempted_positions
                 )
             else:
@@ -259,7 +250,6 @@ class SudokuGenerator:
                     board, 
                     remaining_positions,
                     target_to_remove - removed_count,
-                    symmetric,
                     attempted_positions
                 )
                 
@@ -324,7 +314,7 @@ class SudokuGenerator:
         
         return safe_positions, remaining_positions
     
-    def _remove_clues_for_small_boards(self, board, positions, target_to_remove, symmetric, attempted_positions):
+    def _remove_clues_for_small_boards(self, board, positions, target_to_remove, attempted_positions):
         """
         Specialized clue removal for smaller boards.
         
@@ -332,7 +322,6 @@ class SudokuGenerator:
             board (Board): The board to remove clues from
             positions (list): List of filled positions
             target_to_remove (int): Number of clues to remove
-            symmetric (bool): Whether to remove symmetrically
             attempted_positions (set): Set of already attempted positions
             
         Returns:
@@ -353,37 +342,26 @@ class SudokuGenerator:
             # Mark as attempted
             attempted_positions.add((row, col))
             
-            # Determine cells to remove (original and symmetric if needed)
-            cells_to_remove = [(row, col)]
-            if symmetric:
-                sym_row, sym_col = self.size - 1 - row, self.size - 1 - col
-                if (row, col) != (sym_row, sym_col) and not board.is_empty(sym_row, sym_col):
-                    cells_to_remove.append((sym_row, sym_col))
-                    attempted_positions.add((sym_row, sym_col))
+            # Save value before removal
+            value = board.get_value(row, col)
             
-            # Save values before removal
-            values = [board.get_value(r, c) for r, c in cells_to_remove]
-            
-            # Remove clues
-            for r, c in cells_to_remove:
-                board.set_value(r, c, None)
+            # Remove clue
+            board.set_value(row, col, None)
             
             # Update constraints efficiently - only update affected cells
-            for r, c in cells_to_remove:
-                board.update_possible_values(r, c, affected_only=True)
+            board.update_possible_values(row, col, affected_only=True)
             
             # Check if still unique - for small boards full solution counting is fine
             if board.count_solutions(max_count=2) == 1:
-                removed_count += len(cells_to_remove)
+                removed_count += 1
             else:
-                # Put back the clues
-                for i, (r, c) in enumerate(cells_to_remove):
-                    board.set_value(r, c, values[i])
-                    board.update_possible_values(r, c, affected_only=True)
+                # Put back the clue
+                board.set_value(row, col, value)
+                board.update_possible_values(row, col, affected_only=True)
         
         return removed_count == target_to_remove
     
-    def _remove_clues_for_large_boards(self, board, positions, target_to_remove, symmetric, attempted_positions):
+    def _remove_clues_for_large_boards(self, board, positions, target_to_remove, attempted_positions):
         """
         Specialized clue removal for large boards like 9x9.
         Uses a more efficient approach for uniqueness checking.
@@ -392,7 +370,6 @@ class SudokuGenerator:
             board (Board): The board to remove clues from
             positions (list): List of filled positions
             target_to_remove (int): Number of clues to remove
-            symmetric (bool): Whether to remove symmetrically
             attempted_positions (set): Set of already attempted positions
             
         Returns:
@@ -424,43 +401,31 @@ class SudokuGenerator:
             # Mark as attempted
             attempted_positions.add((row, col))
             
-            # Determine cells to remove (original and symmetric if needed)
-            cells_to_remove = [(row, col)]
-            if symmetric:
-                sym_row, sym_col = self.size - 1 - row, self.size - 1 - col
-                if (row, col) != (sym_row, sym_col) and not board.is_empty(sym_row, sym_col):
-                    cells_to_remove.append((sym_row, sym_col))
-                    attempted_positions.add((sym_row, sym_col))
-            
-            # Check if any of the cells are critical
-            if any((r, c) in critical_cells for r, c in cells_to_remove):
+            # Check if the cell is critical
+            if (row, col) in critical_cells:
                 continue
             
-            # Save values before removal
-            values = [board.get_value(r, c) for r, c in cells_to_remove]
+            # Save value before removal
+            value = board.get_value(row, col)
             
-            # Remove clues
-            for r, c in cells_to_remove:
-                board.set_value(r, c, None)
+            # Remove clue
+            board.set_value(row, col, None)
             
             # Update constraints - only affected cells for efficiency
-            for r, c in cells_to_remove:
-                board.update_possible_values(r, c, affected_only=True)
+            board.update_possible_values(row, col, affected_only=True)
             
             # Check uniqueness efficiently
             unique = self._verify_uniqueness_optimized(board, solution_board)
             
             if unique:
-                removed_count += len(cells_to_remove)
+                removed_count += 1
             else:
-                # Mark these cells as critical to avoid retrying them
-                for r, c in cells_to_remove:
-                    critical_cells.add((r, c))
+                # Mark this cell as critical to avoid retrying it
+                critical_cells.add((row, col))
                 
-                # Put back the clues
-                for i, (r, c) in enumerate(cells_to_remove):
-                    board.set_value(r, c, values[i])
-                    board.update_possible_values(r, c, affected_only=True)
+                # Put back the clue
+                board.set_value(row, col, value)
+                board.update_possible_values(row, col, affected_only=True)
         
         return removed_count == target_to_remove
 

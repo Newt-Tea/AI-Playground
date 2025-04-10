@@ -104,7 +104,7 @@ def test_batch_generate_functionality(size, num_clues):
     # Create a temporary directory
     with tempfile.TemporaryDirectory() as tmpdir:
         # Generate a small batch of puzzles
-        batch_generate.generate_puzzles(size, 2, num_clues, False, tmpdir)
+        batch_generate.generate_puzzles(size, 2, num_clues, tmpdir)
         
         # Check if batch statistics file was created
         batch_files = [f for f in os.listdir(tmpdir) if f.startswith('batch_')]

@@ -26,7 +26,6 @@ class BenchmarkResult:
         self.success_rate = 0.0
         self.board_size = None
         self.num_clues = None
-        self.symmetric = None
     
     def add_run(self, time_taken, iterations, memory_usage):
         """
@@ -41,7 +40,7 @@ class BenchmarkResult:
         self.iterations.append(iterations)
         self.memory_usages.append(memory_usage)
     
-    def finalize(self, success_count, total_runs, board_size, num_clues=None, symmetric=False):
+    def finalize(self, success_count, total_runs, board_size, num_clues=None):
         """
         Finalize the benchmark result with summary statistics.
         
@@ -50,12 +49,10 @@ class BenchmarkResult:
             total_runs (int): Total number of runs attempted
             board_size (int): Size of the board used in the benchmark
             num_clues (int, optional): Number of clues for puzzle generation
-            symmetric (bool): Whether symmetry was used in puzzle generation
         """
         self.success_rate = success_count / total_runs if total_runs > 0 else 0.0
         self.board_size = board_size
         self.num_clues = num_clues
-        self.symmetric = symmetric
     
     def get_summary(self):
         """
@@ -92,7 +89,6 @@ class BenchmarkResult:
         return {
             "board_size": self.board_size,
             "num_clues": self.num_clues,
-            "symmetric": self.symmetric,
             "success_rate": self.success_rate,
             "time": time_stats,
             "memory": memory_stats,
@@ -115,7 +111,6 @@ class BenchmarkResult:
         
         if summary['num_clues'] is not None:
             result.append(f"Puzzle generation with {summary['num_clues']} clues")
-            result.append(f"Symmetric: {summary['symmetric']}")
         
         result.append(f"Success Rate: {summary['success_rate']*100:.1f}%")
         result.append(f"Time (seconds):")
@@ -185,8 +180,8 @@ def benchmark_solver(board_size=9, num_runs=5, profile=False):
         # Make a random puzzle with half the cells revealed
         puzzle = full_board.copy()
         
-        # Remove a fixed percentage of clues
-        target_clues = board_size * board_size // 2
+        # Remove  25%  of clues
+        target_clues = board_size * board_size * 0.75
         
         # Make a copy with 50% of cells empty for testing solver performance
         positions = [(row, col) for row in range(board_size) for col in range(board_size)]
@@ -232,14 +227,13 @@ def benchmark_solver(board_size=9, num_runs=5, profile=False):
     return result
 
 
-def benchmark_generator(board_size=9, num_clues=None, symmetric=False, num_runs=3):
+def benchmark_generator(board_size=9, num_clues=None, num_runs=3):
     """
     Benchmark the Sudoku puzzle generator.
     
     Args:
         board_size (int): Size of the Sudoku board to benchmark (default: 9)
         num_clues (int, optional): Number of clues to leave in the puzzle
-        symmetric (bool): Whether to generate symmetric puzzles
         num_runs (int): Number of benchmark runs (default: 3)
         
     Returns:
@@ -261,7 +255,7 @@ def benchmark_generator(board_size=9, num_clues=None, symmetric=False, num_runs=
                 start_time = time.time()
                 
                 # Generate a puzzle
-                puzzle = generator.generate_puzzle(num_clues=num_clues, symmetric=symmetric)
+                puzzle = generator.generate_puzzle(num_clues=num_clues)
                 
                 # Record end time
                 end_time = time.time()
@@ -287,7 +281,7 @@ def benchmark_generator(board_size=9, num_clues=None, symmetric=False, num_runs=
                 continue
     
     # Finalize the benchmark result
-    result.finalize(success_count, num_runs, board_size, num_clues, symmetric)
+    result.finalize(success_count, num_runs, board_size, num_clues)
     
     return result
 
@@ -307,40 +301,28 @@ def run_comprehensive_benchmarks():
     # Benchmark solver for different board sizes with increased iterations
     for size in [4, 9, 16]:
         print(f"Benchmarking solver for {size}x{size} board...")
-        # Scale number of runs based on board size (smaller boards can run more iterations)
-        if size == 4:
-            num_runs = 10  # More runs for small boards
-        elif size == 9:
-            num_runs = 7   # Medium number for 9x9
-        else:
-            num_runs = 5   # Fewer runs for larger boards that take longer
+        num_runs = 10
             
         results["solver"][size] = benchmark_solver(size, num_runs=num_runs).get_summary()
     
     # Benchmark generator for different board sizes and configurations
     for size, configs in [
-        (4, [{"num_clues": 12, "symmetric": False}]),
-        (9, [{"num_clues": 40, "symmetric": False}]),
-        (16, [{"num_clues": None, "symmetric": False}])  # Use default clues for 16x16
+        (4, [{"num_clues": 12}]),
+        (9, [{"num_clues": 40}]),
+        (16, [{"num_clues": 192}])
     ]:
         results["generator"][size] = {}
         
         for config in configs:
-            config_name = f"{config['num_clues']}_clues_{'sym' if config['symmetric'] else 'nonsym'}"
+            config_name = f"{config['num_clues']}_clues"
             print(f"Benchmarking generator for {size}x{size} board with {config_name}...")
             
             # Scale number of runs based on board size
-            if size == 4:
-                num_runs = 8   # More runs for small boards
-            elif size == 9:
-                num_runs = 5   # Medium number for 9x9
-            else:
-                num_runs = 3   # Fewer runs for larger boards that take longer
+            num_runs = 10   # Fewer runs for larger boards that take longer
                 
             results["generator"][size][config_name] = benchmark_generator(
                 size, 
-                config["num_clues"], 
-                config["symmetric"],
+                config["num_clues"],
                 num_runs=num_runs
             ).get_summary()
     

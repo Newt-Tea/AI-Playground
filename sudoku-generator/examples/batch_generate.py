@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from src.sudoku.generator import SudokuGenerator
 
-def generate_puzzles(size, count, num_clues=None, symmetric=False, output_dir="puzzles"):
+def generate_puzzles(size, count, num_clues=None, output_dir="puzzles"):
     """
     Generate multiple puzzles with specified parameters.
     
@@ -26,7 +26,6 @@ def generate_puzzles(size, count, num_clues=None, symmetric=False, output_dir="p
         size (int): Size of the puzzles (4, 9, or 16)
         count (int): Number of puzzles to generate
         num_clues (int, optional): Number of clues for each puzzle
-        symmetric (bool): Whether to use symmetric clue removal
         output_dir (str): Directory to save the puzzles
     """
     # Ensure the output directory exists
@@ -43,7 +42,6 @@ def generate_puzzles(size, count, num_clues=None, symmetric=False, output_dir="p
         "size": size,
         "count": count,
         "num_clues": num_clues,
-        "symmetric": symmetric,
         "timestamp": timestamp,
         "total_time": 0,
         "puzzles": []
@@ -61,7 +59,7 @@ def generate_puzzles(size, count, num_clues=None, symmetric=False, output_dir="p
         
         try:
             # Generate the puzzle
-            puzzle = generator.generate_puzzle(num_clues=num_clues, symmetric=symmetric)
+            puzzle = generator.generate_puzzle(num_clues=num_clues)
             
             # Get statistics
             stats = generator.get_stats()
@@ -71,7 +69,6 @@ def generate_puzzles(size, count, num_clues=None, symmetric=False, output_dir="p
                 "id": f"{size}x{size}_{timestamp}_{i+1}",
                 "size": size,
                 "num_clues": stats["num_clues"],
-                "symmetric": stats["symmetric"],
                 "generation_time": stats["generation_time"],
                 "grid": [[puzzle.get_value(row, col) for col in range(size)] for row in range(size)]
             }
@@ -113,14 +110,12 @@ def main():
                         help="Number of puzzles to generate")
     parser.add_argument("--clues", type=int, 
                         help="Number of clues for each puzzle (default depends on size)")
-    parser.add_argument("--symmetric", action="store_true", 
-                        help="Use symmetric clue removal")
     parser.add_argument("--output-dir", type=str, default="puzzles", 
                         help="Directory to save the puzzles")
     
     args = parser.parse_args()
     
-    generate_puzzles(args.size, args.count, args.clues, args.symmetric, args.output_dir)
+    generate_puzzles(args.size, args.count, args.clues, args.output_dir)
 
 if __name__ == "__main__":
     main()

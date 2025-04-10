@@ -34,14 +34,11 @@ def main():
     num_clues = None
     try:
         clue_input = input(f"Enter number of clues (leave empty for default, recommended: "
-                          f"{7 if size == 4 else 25 if size == 9 else 55}): ")
+                          f"{12 if size == 4 else 40 if size == 9 else 'auto-calculated'}): ")
         if clue_input:
             num_clues = int(clue_input)
     except ValueError:
         print("Using default number of clues.")
-    
-    # Ask if symmetric removal is desired
-    symmetric = input("Use symmetric clue removal? (y/n): ").lower().startswith('y')
     
     print("\nGenerating puzzle...")
     
@@ -49,7 +46,7 @@ def main():
     generator = SudokuGenerator(size)
     
     # Generate a puzzle
-    puzzle = generator.generate_puzzle(num_clues=num_clues, symmetric=symmetric)
+    puzzle = generator.generate_puzzle(num_clues=num_clues)
     
     # Print the generated puzzle
     print("\nGenerated Puzzle:")
@@ -60,7 +57,6 @@ def main():
     print("\nGeneration Statistics:")
     print(f"- Board size: {stats['size']}x{stats['size']}")
     print(f"- Number of clues: {stats['num_clues']}")
-    print(f"- Symmetric: {'Yes' if stats['symmetric'] else 'No'}")
     print(f"- Total generation time: {stats['generation_time']:.3f} seconds")
     print(f"- Solution generation time: {stats['solution_generation_time']:.3f} seconds")
     print(f"- Clue removal time: {stats['clue_removal_time']:.3f} seconds")

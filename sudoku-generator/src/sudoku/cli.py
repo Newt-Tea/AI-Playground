@@ -46,13 +46,6 @@ def setup_argparse():
         help="Number of clues to include in the puzzle. Default: auto-calculated based on size"
     )
     
-    # Symmetric removal option
-    parser.add_argument(
-        "--symmetric", 
-        action="store_true",
-        help="Remove clues symmetrically"
-    )
-    
     # Output format option
     parser.add_argument(
         "--format", "-f",
@@ -248,8 +241,7 @@ def generate_puzzle(args):
         # Generate puzzle
         logger.info(f"Generating Sudoku puzzle of size {args.size}...")
         puzzle = generator.generate_puzzle(
-            num_clues=args.clues,
-            symmetric=args.symmetric
+            num_clues=args.clues
         )
         logger.info(f"Puzzle generated successfully with {args.clues or 'auto-calculated'} clues")
         
