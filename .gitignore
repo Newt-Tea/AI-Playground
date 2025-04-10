@@ -170,3 +170,10 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 sudoku-generator/sudoku-generator.code-workspace
+sudoku-generator/test_continuous_generation.py
+sudoku-generator/sudoku_basic/__init__.py
+sudoku-generator/sudoku_basic/board.py
+sudoku-generator/sudoku_basic/cell.py
+sudoku-generator/sudoku_basic/example.py
+sudoku-generator/sudoku_basic/generator.py
+sudoku-generator/sudoku_basic/solver.py

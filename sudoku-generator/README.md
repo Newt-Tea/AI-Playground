@@ -168,7 +168,7 @@ else:
 |------------|-------|---------------------|
 | 4×4        | 12    | 0.005s              |
 | 9×9        | 40    | 0.500s              |
-| 16×16      | ~75%  | 15.000s             |
+| 16×16      | 192  | 15.000s             |
 
 *Note: Performance benchmarks were measured on a standard system. Your results may vary.*
 

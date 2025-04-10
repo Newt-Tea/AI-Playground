@@ -227,14 +227,16 @@ def benchmark_solver(board_size=9, num_runs=5, profile=False):
     return result
 
 
-def benchmark_generator(board_size=9, num_clues=None, num_runs=3):
+def benchmark_generator(board_size=9, num_clues=None, num_runs=3, max_attempts=None, algorithm="optimized"):
     """
     Benchmark the Sudoku puzzle generator.
     
     Args:
-        board_size (int): Size of the Sudoku board to benchmark (default: 9)
+        board_size (int, optional): Size of the Sudoku board to benchmark (default: 9)
         num_clues (int, optional): Number of clues to leave in the puzzle
-        num_runs (int): Number of benchmark runs (default: 3)
+        num_runs (int, optional): Number of benchmark runs (default: 3)
+        max_attempts (int): Maximum attempts for generator to try
+        algorithm (str, optional): Algorithm to use ("optimized" or "basic") (default: "optimized")
         
     Returns:
         BenchmarkResult: Object containing benchmark results and statistics
@@ -254,8 +256,12 @@ def benchmark_generator(board_size=9, num_clues=None, num_runs=3):
                 # Record start time
                 start_time = time.time()
                 
-                # Generate a puzzle
-                puzzle = generator.generate_puzzle(num_clues=num_clues)
+                # Generate a puzzle with the specified parameters
+                puzzle = generator.generate_puzzle(
+                    num_clues=num_clues,
+                    max_attempts=max_attempts,
+                    algorithm=algorithm
+                )
                 
                 # Record end time
                 end_time = time.time()
@@ -301,7 +307,7 @@ def run_comprehensive_benchmarks():
     # Benchmark solver for different board sizes with increased iterations
     for size in [4, 9, 16]:
         print(f"Benchmarking solver for {size}x{size} board...")
-        num_runs = 10
+        num_runs = 5 if size == 16 else 10  # Fewer runs for very large boards
             
         results["solver"][size] = benchmark_solver(size, num_runs=num_runs).get_summary()
     
@@ -317,14 +323,36 @@ def run_comprehensive_benchmarks():
             config_name = f"{config['num_clues']}_clues"
             print(f"Benchmarking generator for {size}x{size} board with {config_name}...")
             
-            # Scale number of runs based on board size
-            num_runs = 10   # Fewer runs for larger boards that take longer
+            # Scale params based on board size
+            num_runs = 3 if size >= 16 else (5 if size >= 9 else 10)
+            
+            # Set increased max_attempts for larger boards
+            max_attempts = None
+            if size == 9:
+                max_attempts = 30  # Increased from default 10
+            elif size == 16:
+                max_attempts = 50  # Increased from default 15
+            
+            try:
+                # Use appropriate algorithm based on board size
+                algorithm = "basic" if size <= 4 else "optimized"
                 
-            results["generator"][size][config_name] = benchmark_generator(
-                size, 
-                config["num_clues"],
-                num_runs=num_runs
-            ).get_summary()
+                # Try generating with timeout protection
+                results["generator"][size][config_name] = benchmark_generator(
+                    size, 
+                    config["num_clues"],
+                    num_runs=num_runs,
+                    max_attempts=max_attempts,
+                    algorithm=algorithm
+                ).get_summary()
+            except Exception as e:
+                print(f"Failed to benchmark {size}x{size} with {config_name}: {str(e)}")
+                # Record failure information in the results
+                results["generator"][size][config_name] = {
+                    "error": str(e),
+                    "board_size": size,
+                    "num_clues": config["num_clues"]
+                }
     
     return results
 

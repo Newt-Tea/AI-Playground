@@ -33,13 +33,13 @@ def test_generator_basic_performance():
     generator = SudokuGenerator(4)
     
     # Generate a solution and measure performance
-    solution = generator.generate_solution()
+    generator.generate_solution()
     
     # Verify generator reports performance metrics
     assert generator.generation_time > 0
     
     # Generate a puzzle and measure performance
-    puzzle = generator.generate_puzzle(num_clues=8)
+    generator.generate_puzzle(num_clues=8)
     
     # Verify generator reports clue removal performance
     assert generator.removal_time > 0

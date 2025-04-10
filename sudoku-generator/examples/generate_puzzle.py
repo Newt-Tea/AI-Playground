@@ -40,13 +40,21 @@ def main():
     except ValueError:
         print("Using default number of clues.")
     
+    # Ask for algorithm type
+    algorithm = "optimized"
+    algorithm_input = input("Choose algorithm (optimized/basic, default: optimized): ").lower()
+    if algorithm_input in ["basic", "optimized"]:
+        algorithm = algorithm_input
+    else:
+        print("Using default optimized algorithm.")
+    
     print("\nGenerating puzzle...")
     
     # Create a generator instance for the specified size
     generator = SudokuGenerator(size)
     
     # Generate a puzzle
-    puzzle = generator.generate_puzzle(num_clues=num_clues)
+    puzzle = generator.generate_puzzle(num_clues=num_clues, algorithm=algorithm)
     
     # Print the generated puzzle
     print("\nGenerated Puzzle:")
@@ -57,6 +65,7 @@ def main():
     print("\nGeneration Statistics:")
     print(f"- Board size: {stats['size']}x{stats['size']}")
     print(f"- Number of clues: {stats['num_clues']}")
+    print(f"- Algorithm used: {stats['algorithm']}")
     print(f"- Total generation time: {stats['generation_time']:.3f} seconds")
     print(f"- Solution generation time: {stats['solution_generation_time']:.3f} seconds")
     print(f"- Clue removal time: {stats['clue_removal_time']:.3f} seconds")
