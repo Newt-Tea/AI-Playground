@@ -10,7 +10,7 @@ This project is a Sudoku generator and solver implemented in Python. It provides
   - Minimum Remaining Values (MRV) heuristic for efficient solving.
   - Constraint propagation to reduce the search space.
   - Smart clue removal strategies to generate puzzles quickly.
-- **Symmetric Generation**: Option to generate puzzles with rotational symmetry.
+
 - **Performance Benchmarking**: Built-in performance benchmarks for comparing different board sizes and configurations.
 - **Extensive Testing**: Comprehensive test suite to ensure reliability.
 
@@ -93,7 +93,6 @@ python examples/generate_puzzle.py
 This interactive script will prompt you for:
 - Board size (4×4, 9×9, or 16×16)
 - Number of clues (optional)
-- Whether to use symmetric clue removal
 
 The script will then generate a puzzle, display it, and provide generation statistics.
 
@@ -102,14 +101,13 @@ The script will then generate a puzzle, display it, and provide generation stati
 Use the `batch_generate.py` example script to generate multiple puzzles:
 
 ```
-python examples/batch_generate.py --size 9 --count 10 --clues 25 --symmetric
+python examples/batch_generate.py --size 9 --count 10 --clues 25
 ```
 
 Parameters:
 - `--size`: Board size (4, 9, or 16)
 - `--count`: Number of puzzles to generate
 - `--clues`: Number of clues for each puzzle (optional)
-- `--symmetric`: Use symmetric clue removal
 - `--output-dir`: Directory to save puzzles (default: "puzzles")
 
 ### Solving Puzzles
@@ -166,13 +164,11 @@ else:
 
 ### Generator Performance
 
-| Board Size | Clues | Symmetric | Avg. Generation Time |
-|------------|-------|-----------|---------------------|
-| 4×4        | 7     | No        | 0.005s              |
-| 4×4        | 8     | Yes       | 0.006s              |
-| 9×9        | 25    | No        | 0.500s              |
-| 9×9        | 30    | Yes       | 0.750s              |
-| 16×16      | 55    | No        | 15.000s             |
+| Board Size | Clues | Avg. Generation Time |
+|------------|-------|---------------------|
+| 4×4        | 12    | 0.005s              |
+| 9×9        | 40    | 0.500s              |
+| 16×16      | ~75%  | 15.000s             |
 
 *Note: Performance benchmarks were measured on a standard system. Your results may vary.*
 
@@ -186,7 +182,6 @@ The generator uses a multi-step approach:
 2. Remove clues while ensuring the puzzle maintains a unique solution:
    - For small boards (4×4): Use full solution counting to ensure uniqueness.
    - For larger boards (9×9, 16×16): Use optimized uniqueness verification that checks for alternative solutions.
-3. (Optional) Enforce symmetric clue removal by removing cells in symmetrically opposite positions.
 
 ### Puzzle Solving
 
