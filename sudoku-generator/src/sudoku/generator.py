@@ -137,14 +137,14 @@ class SudokuGenerator:
                 # 75% of the board for larger sizes
                 num_clues = int(self.size * self.size * 0.75)
         
-        # Set default max_attempts - Increased to ensure we find unique puzzles
+        # Set default max_attempts by size
         if max_attempts is None:
             if self.size == 4:
-                max_attempts = 10  # For 4x4 boards
+                max_attempts = 10  
             elif self.size == 9:
-                max_attempts = 25  # Increased from 10 to 25 for 9x9 boards 
+                max_attempts = 25 
             else:
-                max_attempts = 40  # Increased from 15 to 40 for 16x16 boards
+                max_attempts = 40 
         
         # Try multiple times in case we get stuck
         for attempt in range(max_attempts):
