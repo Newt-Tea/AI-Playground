@@ -178,3 +178,4 @@ sudoku-generator/sudoku_basic/example.py
 sudoku-generator/sudoku_basic/generator.py
 sudoku-generator/sudoku_basic/solver.py
 sudoku-generator/sudoku_basic/main.py
+sudoku-generator/sudoku_basic/requirements.txt
